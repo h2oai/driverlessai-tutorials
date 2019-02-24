@@ -110,3 +110,6 @@ mojo.zip
 
 # DAI license
 license.sig
+
+# VAgrant
+.vagrant
