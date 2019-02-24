@@ -1,0 +1,26 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.configure("2") do |config|
+  # More boxes at https://vagrantcloud.com/search.
+  config.vm.box = "ubuntu/bionic64"
+  config.vm.network "private_network", ip: "192.168.33.10"
+  # config.vm.network "forwarded_port", guest: 80, host: 8080
+
+  # HDD size for guest machine
+  config.disksize.size = '10GB'
+
+  config.vm.provider "virtualbox" do |vb|
+     vb.memory = "8192"
+  end
+  
+  # Provisioning 
+  # File
+  config.vm.provision "file", source: "payload/scorer.zip", destination: "/home/vagrant/scorer.zip"
+  config.vm.provision "file", source: "payload/license.sig", destination: "/home/vagrant/.driverlessai/license.sig"
+  
+  # Shell - bootstraping 
+  config.vm.provision "shell", path: "bootstrap.sh", name: "bootstrap", privileged: true
+  # Shell - user install 
+  config.vm.provision "shell", path: "payload.sh", name: "payload", privileged: false 
+end
