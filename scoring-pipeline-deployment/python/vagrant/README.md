@@ -28,8 +28,8 @@ top-dir: A directory with the below structure. Name of directory can be anything
 - bootstrap.sh: The shell provisioner, installs core ubuntu packages
 - payload.sh: Shell provisioner, installs Miniconda, creates scoring environment, runs pipeline  
 - payload: A directory that contains files which can be used in the virtual machine for deployment
-    - scorer.zip: The DAI python scoring pipeline. You need to put this file here
-    - license.sig: Valid Driverless AI license file
+    - scorer.zip: The DAI python scoring pipeline. __**You need to put this file here**__
+    - license.sig: Valid Driverless AI license file. __**You need to provide your license file here**__
 ```
 
 Instructions
@@ -54,10 +54,19 @@ To run `example.py` you can follow the below steps once you are connected using 
 
 ```
 conda env list                            # shows conda environments available on the system
-conda activate environment_name           # activate environment for the experiment (experiment key is in name)
+conda activate environment_name           # activate environment for required experiment (experiment key is in name)
 python example.py                         # to run example.py manually
 ```
+
 Similarly, you can run the HTTP and TCP server python files too.
+
+Multiple Deployments on same Host
+---------------------------------
+
+Each DAI experiment python deployment pipeline should be contained in its own virtual python environment.
+We support both `conda` and `pip + virtualenv` based virtual environments. This separation enables flexibility
+to have multiple experiment scoring pipelines to be deployed on the same machine without interfering with
+each other.
 
 
 
