@@ -1,5 +1,5 @@
-Python Scoring Pipeline Wrapper
-===============================
+Python Scoring Pipeline Wrapper using Vagrant
+=============================================
 
 This directory contains sample code that explains the steps needed to deploy a python scoring pipeline
 obtained from H2O Driverless AI in a Ubuntu 18.04 virtual machine in Vagrant.
@@ -28,8 +28,8 @@ top-dir: A directory with the below structure. Name of directory can be anything
 - bootstrap.sh: The shell provisioner, installs core ubuntu packages
 - payload.sh: Shell provisioner, installs Miniconda, creates scoring environment, runs pipeline  
 - payload: A directory that contains files which can be used in the virtual machine for deployment
-    - scorer.zip: The DAI python scoring pipeline. __**You need to put this file here**__
-    - license.sig: Valid Driverless AI license file. __**You need to provide your license file here**__
+    - scorer.zip: The DAI python scoring pipeline. (You need to put this file here)
+    - license.sig: Valid Driverless AI license file. (You need to provide your license file here)
 ```
 
 Instructions
@@ -39,7 +39,7 @@ Instructions
 2. Install Vagrant. Ensure you can invoke it using `vagrant --version`
 2. Install Vagrant Disk Size plugin `vagrant plugin install vagrant-disksize`
 3. Go to `top-dir`, which contains the files as mentioned in the above section
-4. Copy the scoring pipeline `scorer.zip` in the `payload` directory
+4. Copy the scoring pipeline `scorer.zip` in the `payload` directory. You may need to create the `payload` directory.
 5. Copy Driverless AI license `license.sig` in the `payload` directory
 6. Issue the command `vagrant up`. This will
     - Create a Ubuntu 18.04 based virtual machine
