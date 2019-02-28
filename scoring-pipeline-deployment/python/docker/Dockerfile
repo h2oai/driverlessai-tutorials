@@ -10,7 +10,6 @@ RUN apt-get update && \
         libx11-6 \
         libx11-dev \
         locales \
-        sudo \
         unzip \
         wget
 
@@ -20,10 +19,8 @@ ENV LANGUAGE en_US:en
 ENV LC_ALL en_US.UTF-8
 ENV HOME /home/newuser
 
-# Create new user, setup password, provide sudo rights
-RUN useradd -ms /bin/bash newuser && \
-    echo 'newuser:newpass' | chpasswd && \
-    adduser newuser sudo
+# Create new user
+RUN useradd -ms /bin/bash newuser
 
 # Create a new user to run the pipeline
 USER newuser
