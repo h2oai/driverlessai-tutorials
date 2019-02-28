@@ -58,3 +58,12 @@ python example.py                         # to run example.py manually
 ```
 
 Similarly, you can run the HTTP and TCP server python files too.
+
+
+Disclaimer
+----------
+
+The scoring pipeline wrapper code shared in this directory is created to provide you 
+a sample starting point and is not intended to be directly deployed to production as is.
+You can use this starting point and build over it to solve your deployment needs ensuring
+that your security etc. requirements are met.
