@@ -36,7 +36,7 @@ Instructions
 3. Change to `top-dir`, which contains the files as mentioned in the above section
 4. Copy the scoring pipeline `scorer.zip` in the `payload` directory. You may need to create the `payload` directory.
 5. Copy Driverless AI license `license.sig` in the `payload` directory
-6. Issue the command `docker build -t scoretest`. This will
+6. Issue the command `docker build -t scoretest .`. This will
     - Create a Ubuntu 18.04 based docker container 
     - Install required dependencies, miniconda, python etc..
     - Create a conda environment for the scoring pipeline by installing all needed dependencies
