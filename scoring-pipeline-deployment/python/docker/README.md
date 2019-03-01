@@ -10,7 +10,7 @@ Prerequisites
 -------------
 
 The following pre-requisites are needed
-- [Docker](https://www.virtualbox.org/): A free virtualization provider
+- [Docker](https://www.docker.com/) 
 
 Follow the installation instructions for your platform and get Docker Ce (or EE) installed on the machine. 
 
@@ -47,7 +47,7 @@ shows how to use DAI python scoring pipeline as a python module. There are other
 
 You can run the docker container in interactive model, and can experiment with the HTTP and TCP endpoints.
 
-Execute the command `docker run -it scoretest:latest`. Once connected you will be in the `scoring-pipeline` directory.
+Execute the command `docker run -it --rm scoretest:latest`. Once connected you will be in the `scoring-pipeline` directory.
 
 To run `example.py` you can follow the below steps once you are connected using SSH
 
