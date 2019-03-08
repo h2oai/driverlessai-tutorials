@@ -7,8 +7,7 @@ RUN apt-get update && \
         build-essential \
         libmagic-dev \ 
         libopenblas-dev \
-        libx11-6 \
-        libx11-dev \
+        git \
         locales \
         unzip \
         wget
