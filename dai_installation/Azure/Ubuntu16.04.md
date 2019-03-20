@@ -34,7 +34,7 @@ Install Nvidia 384.xx driver
 
 At this point you will need to restart the compute instance from Azure console for the drivers to be loaded.
 
-The below gif captures the commands I tried the installation process
+The below gif captures the commands I tried during the installation process
 
 ![Install Nvidia driver](images/01_nvidia_driver_install.gif)
 
@@ -73,7 +73,9 @@ sudo dpkg -i libcudnn7-dev*.deb
 sudo dpkg -i libcudnn7-doc*.deb
 ```
 
-The below gif captures the commands I tried the installation process
+The below gif captures the commands I tried during the installation process for CUDA Toolkit and cuDNN
+
+![Install CUDA Toolkit](images/02_cuda_install.gif)
 
 Install Docker CE
 -----------------
@@ -120,6 +122,10 @@ sudo apt-get update
 
 [nvidia-docker2 install reference][11]
 
+The below gif captures the commands I used to install docker and nvidia-docker2 
+
+![Install CUDA Toolkit](images/03_docker_install.gif)
+
 Set Nvidia Persistance mode
 ---------------------------
 - Driverless AI requires the persistance mode to enabled on each GPU that would be used with DAI
@@ -128,9 +134,18 @@ Set Nvidia Persistance mode
 - To validate, issue the command `nvidia-smi` and verify that persistance mode setting is turned ON.
 - Also validate the setting is visible within the nvidia-docker using the command `nvidia-docker2 run --rm nvidia/cuda nvidia-smi`
 
-At this point your system setup tasks are pretty much completed and you can start with [installing Driverless AI][13] following the directions step 5 onwards.
+At this point your system setup tasks are pretty much completed.
 
-You can [download latest Driverless AI][14] docker image from [https://www.h2o.ai/download/#driverless-ai][14]
+Install H2O Driverless AI as docker
+-----------------------------------
+
+- [Download latest Driverless AI][14] docker image from [https://www.h2o.ai/download/#driverless-ai][14]
+- Load the download image to docker using command `docker load < dai_image_name.tar.gz`. Substitute the correct file name.
+- Proceed with [installing Driverless AI][13] following the directions step 5 onwards on that page.
+
+The below gif captures the commands I used to get DAI docker image running on the server.
+
+![Install Driverless AI](images/04_dai_install_e13.gif)
 
 [1]: https://docs.microsoft.com/en-us/azure/azure-resource-manager/resource-manager-deployment-model
 [2]: https://docs.microsoft.com/en-us/azure/virtual-machines/linux/n-series-driver-setup
