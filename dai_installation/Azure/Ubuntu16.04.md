@@ -36,6 +36,8 @@ At this point you will need to restart the compute instance from Azure console f
 
 The below gif captures the commands I tried the installation process
 
+![Install Nvidia driver](images/01_nvidia_driver_install.gif)
+
 Install CUDA 9.0 toolkit
 ------------------------
 
