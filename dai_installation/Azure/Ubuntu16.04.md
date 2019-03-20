@@ -25,7 +25,7 @@ Install Nvidia 384.xx driver
 - Run the following commands to get it up to date
   - `sudo apt-get update`
   - `sudo apt-get upgrade`
-- Navigate to [Nvidia CUDA download archive][7], and select `Linux` > `x86_64` > `Ubuntu` > `16.04` > `deb (network)`. Copy the link to the `cuda-repo-ubuntu1604_9.0.176-1_amd64.deb` file.
+- Navigate to [Nvidia CUDA download archive][7], and select `Linux` > `x86_64` > `Ubuntu` > `16.04` > `deb (network)`. Copy the link to the `cuda-repo-ubuntu1604_9.0.176-1_amd64.deb` file. Download the file using `wget <put the copied link here>`
 - Install the downloaded package `sudo dpkg -i cuda-repo-ubuntu1604_9.0.176-1_amd64.deb`
 - Add the apt key `sudo apt-key adv --fetch-keys http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1604/x86_64/7fa2af80.pub`
 - `sudo apt-get update`
