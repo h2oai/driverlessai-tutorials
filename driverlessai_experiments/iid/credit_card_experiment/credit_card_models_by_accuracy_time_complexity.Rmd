@@ -1,0 +1,362 @@
+---
+title: "DAI Model Performance Analysis by Varying Experiment Settings"
+author: "Gregory Kanevsky"
+date: '`r format(Sys.Date(), "%B %d, %Y")`'
+output:
+  html_document: 
+    toc: yes
+  html_notebook: default
+  pdf_document: default
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+library(dai)
+library(data.table)
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Introduction
+
+If you are looking forward to next major release of H2O Driverless AI then you have many reasons to get excited. I'll uncover one of them: releae 1.7.0 will add R Client API for Driverless AI to compliment always available Python Client API. Allowing R scripting with Driverless AI lets many developers integrate numerous R capabilities into single workflow including R powerful visualization libraries. Let's illustrate how it will work by analyzing Driverless AI state of the art machine learning workflow and its hyper parameters.
+
+### Dimensions of Automated Machine Learning in Driverless AI 
+
+DAI places each model inside 3-dimensional cube where axes span values from 1 (lowest) to 10 (highest) on integer scale. The 3 dimensions are $accuracy$, $time$, and $complexity$ with DAI using interpretability instead of complexity (the two stand in simple relationship: $interpretability = 11 - complexity$). These three dimensions control machine learning workflow in Driverless AI:
+
+   - **Accuracy**: as it increases Driverless AI gradually adjusts the method for performing the evolution and ensemble. At low accuracy, Driverless AI varies features and models, but they all compete evenly against each other. At higher accuracy, each independent main model will evolve independently and be part of the final ensemble as an ensemble over different main models.
+   - **Time**: specifies the relative time for completing the experiment (i.e., higher settings take longer).
+   - **Complexity** (exact opposite of Interpretability dial in Driverless AI): increases ensemble level, loosens monotonocity constraints, and expands space of transformers utilized in experiment. Because complexity changes in the same direction as the other two dimensions we will use it in the plots below instead of Interpretability.
+
+### Boundary Models
+
+Let's create two corner case models that will serve as virtual boundaries for performance and other metrics colleced for DAI models:
+
+  - a baseline model: all dimensions set to 1 and [compliant recipe enabled](http://docs.h2o.ai/driverless-ai/latest-stable/docs/userguide/expert-settings.html?highlight=expert%20setting#pipeline-building-recipe) in expert settings:
+      - Only use GLM 
+      - Does not convert any numerics to categoricals except via one-hot encoding
+      - Doesn’t use any ensemble.
+      - Interaction depth is set to 1.
+      - and more.
+  This special (baseline) model will be assigned point (0, 0, 0) just outside of the cube with assumption that no other model on the same data can produce the final model with less effort. 
+  - a maximum model: all 3 dimensions set to 10 and all others set by default. This model will be assigned point (11, 11, 11) just outside of the cube with assumption that no other model on the same data will be able to exert more effort in search of the final model.
+  
+The following functions create DAI models, retrieve and find existing one, and create special baseline model:
+```{r createBaselineModelFunc}
+findExistingModel <- function(existingModels, train, test, targetColumn, colsToDrop,
+                        accuracy, time, complexity, isClassification, isTimeseries) {
+  
+  if (is.null(existingModels) || class(existingModels) != "data.frame")
+    return(NULL)
+  
+  models = cbind(as.data.table(existingModels$parameters),
+                 existingModels[, setdiff(names(existingModels), "parameters")])
+  
+  accuracyvar = accuracy
+  timevar = time
+  found = models[dataset_key == train$key & 
+                        testset_key == test$key &
+                        target_col == targetColumn &
+                        length(intersect(unlist(cols_to_drop), colsToDrop)) == 0 &
+                        accuracy == accuracyvar &
+                        time == timevar &
+                        interpretability == (11 - complexity) &
+                        is_classification == isClassification &
+                        is_timeseries == isTimeseries, ]
+  
+  if(nrow(found) > 0) 
+    return(found[[1, 'key']])
+  else
+    return(NULL)
+}
+
+createModel <- function(train, test, targetColumn, colsToDrop,
+                        accuracy, time, complexity,
+                        isClassification = TRUE, isTimeseries = FALSE,
+                        config = NULL, progress = FALSE, existingModels = NULL) {
+  
+  key = findExistingModel(existingModels, train, test, targetColumn, colsToDrop,
+                            accuracy, time, complexity,
+                            isClassification = TRUE, isTimeseries = FALSE)
+  if (!is.null(key)) 
+    return(dai.get_model(key))
+  
+  model = dai.train(training_frame = train, testing_frame = test,
+                    target_col = targetColumn,  cols_to_drop = colsToDrop,
+                    is_classification = isClassification, is_timeseries = isTimeseries,
+                    accuracy = accuracy, time = time, interpretability = 11 - complexity,
+                    config_overrides = config, progress = progress)
+  
+  return(model)
+}
+
+createBaselineModel <- function(train, test, targetColumn, colsToDrop, 
+                                isClassification = TRUE, isTimeseries = FALSE, 
+                                existingModels = NULL) {
+  
+  baseline_model = createModel(train = train, test = test, 
+                               targetColumn = targetColumn, colsToDrop = colsToDrop,
+                               accuracy = 1, time = 1, complexity = 1,
+                               isClassification = isClassification, isTimeseries = isTimeseries,
+                               config = "recipe = 'compliant'", existingModels = existingModels)
+  
+  return(baseline_model)
+}
+
+createMaximumModel <- function(train, test, targetColumn, colsToDrop,
+                               isClassification = TRUE, isTimeseries = FALSE, 
+                               existingModels = NULL) {
+  max_model = createModel(train = train, test = test, 
+                          targetColumn = targetColumn, colsToDrop = colsToDrop,
+                          accuracy = 10, time = 10, complexity = 10,
+                          isClassification = isClassification, isTimeseries = isTimeseries,
+                          existingModels = existingModels)
+  
+  return(max_model)
+}
+
+extractModelMetrics <- function(x, model) {
+  return(data.table(x=x, 
+                    validation = model$valid_score, 
+                    validation_sd = model$valid_score_sd,
+                    test = model$test_score, 
+                    test_score_sd = model$test_score_sd,
+                    time = model$training_duration,
+                    model_size = model$model_file_size))
+}
+
+makeHLineData <- function(model) {
+  tt = cbind(expand.grid(var=c("accuracy","time","complexity"), 
+                       metric=c("validation","test","time","model_size"),
+                       stringsAsFactors = FALSE),
+           value = c(rep(model$valid_score, 3), rep(model$test_score, 3), 
+                     rep(model$training_duration/ (60.*60.), 3),
+                     rep(model$model_file_size/ (2.^20), 3)))
+tt$var = factor(tt$var, levels = c("accuracy","time","complexity"), ordered = TRUE)
+tt$metric = factor(tt$metric, levels = c("validation","test","time","model_size"), 
+                     labels = c("Validation Score\n(AUC)", "Test Score\n(AUC)", 
+                                "Runtime\n(h)", "Model Size\n(Mb)"),
+                     ordered = TRUE)
+
+return(tt)
+}
+```
+
+### Model Metrics
+
+The 3-dimensional cube of Auto ML parameters comprises complete grid of $10^3 = 1000$ different data points each corresponding to different model (DAI experiment). Assuming unrealistically low running time of average experiment as 10 minutes means that even then completing full grid search will take exuberant $10 * 1000 = 167$ hours. So instead of full 3-dimensional grid search we will use univariate (1-dimensional) search over each Auto ML dimension independently which results in $10 * 3 = 30$ experiments total. Univariate search performs full grid search over each setting from 1 to 10 with fixed values for the other 2 settings. The resulting 3 trends for accuracy, time, and complexity will contain following metrics for each DAI experiment created:
+
+  * experiment validation score (AUC)
+  * experiment test score (AUC)
+  * running time (hours)
+  * model size (megabytes)
+  
+### New R Client for Driverless AI
+
+Please find the link to R package download in DAI Help menu when it becomes avaialble. Until then you can contact [H2O.ai support](https://support.h2o.ai) and ask for early release version to help us test it.
+
+Let's follow step by step typical sequence of working with DAI instance using R client. First, connect to running instance of Driverless AI:
+```{r connectDAI, include=FALSE}
+library(dai)
+
+dai_uri = "http://ec2-3-92-133-238.compute-1.amazonaws.com:12345"
+usr = "h2oai"
+pwd = "i-0337f704c4556c4fa"
+dai.connect(uri = dai_uri, username = usr, password = pwd, force_version = FALSE)
+```
+
+```{r connectDAIvisible, eval=FALSE, include=TRUE}
+dai_uri = "http://mydai.instance.com:12345"
+usr = "mydaiuser"
+pwd = "mydaipassword"
+dai.connect(uri = dai_uri, username = usr, password = pwd, force_version = FALSE)
+```
+
+### Credit Card Dataset
+
+Load Kaggle Credit Card dataset from the file system local to DAI instance (this also work if data set is already pre-loaded into DAI):
+```{r loadCCData}
+datasets = dai.list_datasets(offset = 0, limit = 10)
+
+train_set_name = 'CreditCard-train.csv' 
+test_set_name = 'CreditCard-test.csv' 
+
+cc_train_key = datasets[datasets$name == train_set_name, 'key']
+if (length(cc_train_key) == 1) {
+  cc_train = dai.get_frame(cc_train_key)
+}else {
+  cc_train = dai.create_dataset("/data/Kaggle/CreditCard/CreditCard-train.csv")
+}
+
+cc_test_key = datasets[datasets$name == test_set_name, 'key']
+if (length(cc_test_key) == 1) {
+  cc_test = dai.get_frame(cc_test_key)
+}else {
+  cc_test = dai.create_dataset("/data/Kaggle/CreditCard/CreditCard-test.csv")
+}
+```
+
+### Training Baseline (1/1/1) and Maximum (10/10/10) Models
+
+Define credit card dataset specification and test it by retrieving suggestions from DAI for model accuracy, time, and interpretability - in this case these suggestions don't get to be used though:
+```{r}
+target_column = "default payment next month" # "survived"  
+cols_to_drop = character(0) # c("ticket","cabin","embarked","boat","body","home.dest",
+                            # "cabin_type","family_size","family_type","title")
+
+config = dai.suggest_model_params(training_frame = cc_train, 
+                                  target_col = target_column, # cols_to_drop = cols_to_drop,
+                                  is_classification = TRUE, is_timeseries = FALSE)
+```
+
+Train baseline model with 1/1/1 settings of Auto ML dimensions (1/1/10 settings in DAI) and maximum model with 10/10/10 values of Auto ML dimensions (10/10/1 in DAI):
+
+```{r baselineModel}
+existing_models = dai.list_models(limit = 1000)
+
+baseline_model = createBaselineModel(cc_train, cc_test, target_column, cols_to_drop,
+                                     existingModels = existing_models)
+max_model = createMaximumModel(cc_train, cc_test, target_column, cols_to_drop,
+                               existingModels = existing_models)
+
+basedf = extractModelMetrics(0, baseline_model)
+
+basedf = rbind(basedf, extractModelMetrics(11, max_model))
+```
+
+### Univariate Grid Search Over Each Dimension
+
+Both models' results got saved into temporary dataframe to integrate with main results later. Perform univariate grid search over each of 3 Auto ML dimensions by creating total of 30 DAI models:
+```{r variableAccuracy}
+n = 1
+N = 10
+default_accuracy = 7
+default_time = 6
+default_complexity = 7
+acc_models = vector(mode="list", length=N-n+1)
+time_models = vector(mode="list", length=N-n+1)
+complex_models = vector(mode="list", length=N-n+1)
+
+# run grid search from 1 to 10 for accuracy
+for(i in n:N) {
+  accuracy = i
+  dai_model = createModel(train = cc_train, test = cc_test, 
+                          targetColumn = target_column, colsToDrop = cols_to_drop,
+                          accuracy = accuracy, time = default_time, 
+                          complexity = default_complexity,
+                          existingModels = existing_models)
+  acc_models[[i]] = dai_model
+}
+
+# run grid search from 1 to 10 for time
+for(i in n:N) {
+  time = i
+  dai_model = createModel(train = cc_train, test = cc_test, 
+                          targetColumn = target_column, colsToDrop = cols_to_drop,
+                          accuracy = default_accuracy, time = time, 
+                          complexity = default_complexity,
+                          existingModels = existing_models)
+  time_models[[i]] = dai_model
+}
+
+# run grid search from 1 to 10 for complexity
+for(i in n:N) {
+  complexity = i
+  dai_model = createModel(train = cc_train, test = cc_test, 
+                          targetColumn = target_column, colsToDrop = cols_to_drop,
+                          accuracy = default_accuracy, time = default_time, 
+                          complexity = complexity, 
+                          existingModels = existing_models)
+  complex_models[[i]] = dai_model
+}
+```
+
+Collect data from all 32 experiments (2 boundary models + 30 grid search models) into single `data.table` in melted format suitable for visualizations:
+```{r assembleData}
+assembleData <- function(models, var, basedf) {
+  dflist = lapply(models, function(x) {
+    xval = ifelse(var == "complexity", 11-x$parameters[["interpretability"]], x$parameters[[var]])
+    extractModelMetrics(xval, x)
+  })
+  data = rbind(basedf, do.call("rbind", dflist))
+  data = cbind(var=var, data)
+  
+  return(data)
+}
+
+accdf = assembleData(acc_models, "accuracy", basedf)
+timedf = assembleData(time_models, "time", basedf)
+complexdf = assembleData(complex_models, "complexity", basedf)
+
+data = rbindlist(list(accdf, timedf, complexdf))
+data[, c("time", "model_size") := list(
+  time / (60.*60.),
+  model_size / (2.^20)
+)]
+data = melt(data, id.vars = c("var","x"), measure.vars = c("validation","test","time","model_size"),
+            variable.name = "metric", value.name = "value")
+```
+
+### Driverless AI Trends on Univariate Trends for Each Dimension
+
+Visualization of all trends for all 4 metrics collected by 3 Auto ML dimensions of accuracy, time, and complexity:
+```{r visTrends, fig.height=6, fig.width=8}
+library(ggplot2)
+library(scales)
+library(ggthemes)
+
+data$var = factor(data$var, levels = c("accuracy","time","complexity"), ordered = TRUE)
+data$metric = factor(data$metric, levels = c("validation","test","time","model_size"), 
+                     labels = c("Validation Score\n(AUC)", "Test Score\n(AUC)", 
+                                "Runtime\n(h)", "Model Size\n(Mb)"),
+                     ordered = TRUE)
+
+p = ggplot(data[x>0]) +
+  geom_point(aes(x, value, group=1)) +
+  geom_line(aes(x, value, group=1)) +
+  facet_grid(metric~var, scales = "free", switch = "x") +
+  scale_x_continuous(breaks=0:11) +
+  labs(x="Auto ML Settings", y=NULL, 
+       title = paste0("Driverless AI Trends on Credit Card Dataset by Accuracy, Time and Complexity\nx = x/",
+                      default_time,"/",default_complexity," or ",default_accuracy,"/x/",default_complexity,
+                      " or ",default_accuracy,"/",default_time,"/x and 11 = 10/10/10"),
+       subtitle = paste0("(DAI interpretability = 11 - complexity)")) + 
+  theme_tufte(base_family="Palatino", base_size=12, ticks=FALSE)
+
+print(p)
+```
+
+### Finding "Best" Model
+
+Having determined trends for each of Auto ML dimensions we can focus on where they reach maximum. Using test score as guiding metric to model quality suggests the "best" model is 9/8/10. This approach is naive compared to full grid or other types of hyper-parameter searches but given 30 models created for univariate trends it could be best we can do:
+```{r maxByUnivariateDail}
+# find accuracy, time, and complexity settings where each trend reaches maximum
+max_accuracy = accdf[x < 11][[accdf[x < 11, .I[test == max(test)]], 'x']]
+max_time = timedf[x < 11][[timedf[x < 11, .I[test == max(test)]], 'x']]
+max_complexity = complexdf[x < 11][[complexdf[x < 11, .I[test == max(test)]], 'x']]
+
+# create 'best' model
+best_model = createModel(train = cc_train, test = cc_test,
+                         targetColumn = target_column, colsToDrop = cols_to_drop,
+                         accuracy = max_accuracy, time = max_time, 
+                         complexity = max_complexity,
+                         existingModels = existing_models)
+
+p +
+  geom_hline(data = makeHLineData(best_model), mapping = aes(yintercept=value), 
+             alpha = 0.3, linetype = "dashed", size = 1) +
+  labs(subtitle = paste0("Dashed lines show 'best' model ",max_accuracy,"/",max_time,"/",max_complexity,"\n(DAI interpretability = 11 - complexity)")) + 
+  theme_tufte(base_family="Palatino", base_size=12, ticks=FALSE)
+```
+
+Without resorting to full grid search over all 3 dimensions this approach appears to provide faster and acceptable method to finding optimal model settings in Driverless AI.
+
+## Conclusion
+
+DAI dials for accuracy, time, and interpretability correspond to practical dimensions of Auto ML and suggest for employting methods of searching 3D-cube space of of accuracy, time and complexity for optimal model.
+
+## References
+
+  * [Driverless AI docs: Accuracy, Time, and Interpretability Knobs](http://prerelease2.h2o.ai:12345/docs/userguide/running-experiment.html#accuracy-time-and-interpretability-knobs)
+  * [H2O-3 `automl()` function](http://docs.h2o.ai/h2o/latest-stable/h2o-docs/automl.html)
