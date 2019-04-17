@@ -1,5 +1,5 @@
 ---
-title: "DAI Model Performance Analysis by Varying Experiment Settings"
+title: "H2O Driverless AI Model Performance Analysis by Accuracy, Time and Complexity Dimensions"
 author: "Gregory Kanevsky"
 date: '`r format(Sys.Date(), "%B %d, %Y")`'
 output:
