@@ -12,7 +12,7 @@ While the guides mention a cloud provider (which is where I tried the steps), th
   - Nvidia Drivers
   - CUDA 9.0
   - docker-ce
-  - nvidia-docker and then configure the GPU cards for user is H2O Driverless AI
+  - nvidia-docker and then configure the GPU cards for use is H2O Driverless AI
 - We explain the process using a VM on Azure, but then setup steps should be valid for baremetal as well as VMs in other clouds.
 
 
