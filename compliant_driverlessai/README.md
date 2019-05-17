@@ -2,7 +2,7 @@
 
 # Contents 
 
-* Jupyter notebooks for `compliant` modelling in Driverless AI:
+* Jupyter notebooks for `compliant` modelling in Driverless AI (version 1.6.2):
 	* `Compliant` mode:
 	 	* Documentation about `Compliant` mode in Driverless AI is [here](http://docs.h2o.ai/driverless-ai/latest-stable/docs/userguide/expert-settings.html?highlight=compliant#pipeline-building-recipe)
 		* Disparate Impact Analysis for different `gender` levels in the [UCI creditcard dataset](https://archive.ics.uci.edu/ml/datasets/default+of+credit+card+clients) is [here](https://github.com/h2oai/driverlessai-tutorials/blob/master/compliant_driverlessai/notebooks/compliant_dia_gender.ipynb)  
