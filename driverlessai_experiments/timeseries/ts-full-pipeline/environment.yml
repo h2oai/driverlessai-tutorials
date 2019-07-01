@@ -1,0 +1,9 @@
+name: ts-pipeline-env
+channels:
+  - h2oai
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.6.7
+  - numpy=1.16.*
+  - pandas=0.24.*
