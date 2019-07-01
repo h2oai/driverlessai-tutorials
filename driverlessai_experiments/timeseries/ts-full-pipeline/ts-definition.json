@@ -1,0 +1,329 @@
+{
+    "generators": [
+        {
+            "name": "store-s1-baseline",
+            "type": "constant",
+            "value": 8
+        },
+        {
+            "name": "store-s2-baseline",
+            "type": "constant",
+            "value": 4
+        },
+        {
+            "name": "burger-monthly-baseline",
+            "type": "monthly",
+            "points": {
+                "january": 3.3,
+                "february": 3.7,
+                "march": 6.8,
+                "april": 9.8,
+                "may": 13.6,
+                "june": 16.2,
+                "july": 18.4,
+                "august": 18,
+                "september": 14.9,
+                "october": 11.1,
+                "november": 4.3,
+                "december": 5.9
+            }
+        },
+        {
+            "name": "taco-monthly-baseline",
+            "type": "monthly",
+            "points": {
+                "january": 5.3,
+                "february": 5.7,
+                "march": 8.8,
+                "april": 11.8,
+                "may": 15.6,
+                "june": 18.2,
+                "july": 22.4,
+                "august": 20,
+                "september": 16.9,
+                "october": 13.1,
+                "november": 7.3,
+                "december": 6.9
+            }
+        },
+        {
+            "name": "soda-monthly-baseline",
+            "type": "monthly",
+            "points": {
+                "january": 8.3,
+                "february": 8.7,
+                "march": 9.8,
+                "april": 11.8,
+                "may": 19.6,
+                "june": 26.2,
+                "july": 38.4,
+                "august": 28,
+                "september": 18.9,
+                "october": 13.1,
+                "november": 8.8,
+                "december": 12.9
+            }
+        },
+        {
+            "name": "coffee-monthly-baseline",
+            "type": "monthly",
+            "points": {
+                "january": 18.3,
+                "february": 17.7,
+                "march": 13.8,
+                "april": 9.8,
+                "may": 8.6,
+                "june": 7.5,
+                "july": 7.4,
+                "august": 8.5,
+                "september": 12.9,
+                "october": 13.1,
+                "november": 18.8,
+                "december": 23.9
+            }
+        },
+        {
+            "name": "weekly-variation",
+            "type": "weekly",
+            "points": {
+                "monday": -5.5,
+                "tuesday": -5.25,
+                "wednesday": -8.5,
+                "friday": 5.35,
+                "saturday": 9.5,
+                "sunday": 7.23
+            }
+        },
+        {
+            "name": "daily-variation",
+            "type": "daily",
+            "points": {
+                "00:00:00.000": -5,
+                "02:00:00.000": -5.9,
+                "04:00:00.000": -7,
+                "06:00:00.000": -2.6,
+                "08:00:00.000": 6.7,
+                "10:00:00.000": 2.2,
+                "12:00:00.000": 9,
+                "14:00:00.000": 3,
+                "16:00:00.000": 1.3,
+                "18:00:00.000": 6.9,
+                "20:00:00.000": 5.3,
+                "22:00:00.000": -2.7
+            }
+        },
+        {
+            "name": "result",
+            "type": "aggregate",
+            "aggregator": "sum",
+            "generators": [
+                "weekly-variation",
+                "daily-variation"
+            ]
+        },
+        {
+            "name": "s1-burger",
+            "type": "aggregate",
+            "aggregator": "max",
+            "generators": [
+                {
+                    "type": "constant",
+                    "value": 0
+                },
+                {
+                    "type": "aggregate",
+                    "aggregator": "sum",
+                    "generators": [
+                        "store-s1-baseline",
+                        "burger-monthly-baseline",
+                        "result"
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "s2-burger",
+            "type": "aggregate",
+            "aggregator": "max",
+            "generators": [
+                {
+                    "type": "constant",
+                    "value": 0
+                },
+                {
+                    "type": "aggregate",
+                    "aggregator": "sum",
+                    "generators": [
+                        "store-s2-baseline",
+                        "burger-monthly-baseline",
+                        "result"
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "s1-taco",
+            "type": "aggregate",
+            "aggregator": "max",
+            "generators": [
+                {
+                    "type": "constant",
+                    "value": 0
+                },
+                {
+                    "type": "aggregate",
+                    "aggregator": "sum",
+                    "generators": [
+                        "store-s1-baseline",
+                        "taco-monthly-baseline",
+                        "result"
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "s2-taco",
+            "type": "aggregate",
+            "aggregator": "max",
+            "generators": [
+                {
+                    "type": "constant",
+                    "value": 0
+                },
+                {
+                    "type": "aggregate",
+                    "aggregator": "sum",
+                    "generators": [
+                        "store-s2-baseline",
+                        "taco-monthly-baseline",
+                        "result"
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "s1-soda",
+            "type": "aggregate",
+            "aggregator": "max",
+            "generators": [
+                {
+                    "type": "constant",
+                    "value": 0
+                },
+                {
+                    "type": "aggregate",
+                    "aggregator": "sum",
+                    "generators": [
+                        "store-s1-baseline",
+                        "soda-monthly-baseline",
+                        "result"
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "s2-soda",
+            "type": "aggregate",
+            "aggregator": "max",
+            "generators": [
+                {
+                    "type": "constant",
+                    "value": 0
+                },
+                {
+                    "type": "aggregate",
+                    "aggregator": "sum",
+                    "generators": [
+                        "store-s2-baseline",
+                        "soda-monthly-baseline",
+                        "result"
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "s1-coffee",
+            "type": "aggregate",
+            "aggregator": "max",
+            "generators": [
+                {
+                    "type": "constant",
+                    "value": 0
+                },
+                {
+                    "type": "aggregate",
+                    "aggregator": "sum",
+                    "generators": [
+                        "store-s1-baseline",
+                        "coffee-monthly-baseline",
+                        "result"
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "s2-coffee",
+            "type": "aggregate",
+            "aggregator": "max",
+            "generators": [
+                {
+                    "type": "constant",
+                    "value": 0
+                },
+                {
+                    "type": "aggregate",
+                    "aggregator": "sum",
+                    "generators": [
+                        "store-s2-baseline",
+                        "coffee-monthly-baseline",
+                        "result"
+                    ]
+                }
+            ]
+        }
+    ],
+    "exported": [
+        {
+            "name": "S1;BURGER",
+            "generator": "s1-burger",
+            "frequency": 3600000
+        },
+        {
+            "name": "S2;BURGER",
+            "generator": "s2-burger",
+            "frequency": 3600000
+        },
+        {
+            "name": "S1;TACO",
+            "generator": "s1-taco",
+            "frequency": 3600000
+        },
+        {
+            "name": "S2;TACO",
+            "generator": "s2-taco",
+            "frequency": 3600000
+        },
+        {
+            "name": "S1;SODA",
+            "generator": "s1-soda",
+            "frequency": 3600000
+        },
+        {
+            "name": "S2;SODA",
+            "generator": "s2-soda",
+            "frequency": 3600000
+        },
+        {
+            "name": "S1;COFFEE",
+            "generator": "s1-coffee",
+            "frequency": 3600000
+        },
+        {
+            "name": "S2;COFFEE",
+            "generator": "s2-soda",
+            "frequency": 3600000
+        }
+    ],
+    "from": "2016-01-01 00:00:00.000",
+    "to": "2017-12-31 23:59:59.999"
+}
