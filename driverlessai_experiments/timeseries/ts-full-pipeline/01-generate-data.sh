@@ -98,7 +98,7 @@ parse_args_then_exec(){
     [[ ! -z "${ts_out_file}" ]] || { print_usage; error_exit "Timeseries output file is mandatory"; }
 
     # check if output file exist. If exists, and overwrite option is not specified then show error
-    if [[ -e "${ts_out_file}" && "${force_overwrite}" == false ]]; then
+    if [[ -e "${ts_out_file}.csv" || -e "${ts_out_file}.pickle" ]] && [[ "${force_overwrite}" == false ]]; then
         print_usage
         error_exit "Cannot overwite existing file. Use -f option"
     fi
