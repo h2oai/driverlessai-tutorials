@@ -6,6 +6,10 @@
 force_overwrite=false
 current_dir="$(pwd)"
 script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+conda_env_name="ts-pipeline-env"
+conda_env_def_file="environment.yml"
+ts_process_script="01_process_full_TS_csv.py"
+tmp_csv_file="temp.csv"
 
 error_exit(){
     echo ""
@@ -16,15 +20,47 @@ error_exit(){
 
 print_usage(){
     echo "Usage:"
-    echo "  bash $0 -d <tsdf.json> -o <output.csv> [-f | --force] [-h | --help]"
+    echo "  bash $0 -d <tsdf.json> -o <output> [-f | --force] [-h | --help]"
     echo "Options:"
     echo "  -d <tsdf.json>            Timeseries definition file. Must be JSON file."
-    echo "  -o <output.csv>           Output file. Must be CSV."
+    echo "  -o <output>               Output file name. Will generate output.csv and <output>.pickle files"
     echo "  -f, --force               Force overwrite of output file."
     echo "  -h, --help                Display usage information."
     echo "Details:"
     echo "  Creates the master time series dataset for this pipeline demo. It simulates a larger database"
     echo "  from which section of data will be extracted to train and then predict on"
+}
+
+check_or_download_tsimulus(){
+    if [[ ! -e tsimulus-cli.jar ]]; then
+        local latest_tag=$(curl --silent 'https://api.github.com/repos/cetic/tsimulus-cli/releases/latest' | grep -Po '"tag_name": "\K.*?(?=")')
+        curl https://github.com/cetic/tsimulus-cli/releases/download/"${latest_tag}"/tsimulus-cli.jar --o tsimulus-cli.jar -silent
+    fi
+    # finally check that the file does exist, or error out
+    [[ -e "tsimulus-cli.jar" ]] || error_exit "Error downloading TSimulus CLI. Cannot continue"
+}
+
+generate_ts_data(){
+    # if flow reaches here, validation checks are assumed to be passed and output file is ok to overwrite if present
+    java -jar tsimulus-cli.jar "${ts_def_file}" | tail -n +2 | sed -r 's/;/,/g' > "${tmp_csv_file}"
+}
+
+check_create_condaenv(){
+    conda --version > /dev/null || error_exit "Conda required, please install miniconda or anaconada and configure PATH correctly."
+    local env_count=$(conda env list | grep "${conda_env_name}" | wc -l)
+    if [[ "${env_count}" == 0 ]]; then
+        # create conda environment from the yml file
+        [[ -e "${conda_env_def_file}" ]] || error_exit "Conda environment creation file not found"
+        conda env create -f "${conda_env_def_file}" || error_exit "Error creating conda environment"
+    fi
+}
+
+process_ts_file(){
+    # if control reaches here, then conda environment is available
+    [[ -e "${ts_process_script}" ]] || error_exit "Python script to process timeseries data not found"
+    source activate "${conda_env_name}" &&
+        python "${ts_process_script}" "${tmp_csv_file}" "${ts_out_file}" &&
+        mv "${tmp_csv_file}" "${ts_out_file}.csv"
 }
 
 parse_args_then_exec(){
@@ -76,23 +112,14 @@ parse_args_then_exec(){
     # check tsimulus cli available, if not, download it
     check_or_download_tsimulus
 
+    # generate Timeseries data based on the definition file
     generate_ts_data
 
+    # Create conda environment if it does not exist
+    check_create_condaenv
 
-}
-
-check_or_download_tsimulus(){
-    if [[ ! -e tsimulus-cli.jar ]]; then
-        local latest_tag=$(curl --silent 'https://api.github.com/repos/cetic/tsimulus-cli/releases/latest' | grep -Po '"tag_name": "\K.*?(?=")')a
-        curl https://github.com/cetic/tsimulus-cli/releases/download/"${latest_tag}"/tsimulus-cli.jar --o tsimulus-cli.jar -silent
-    fi
-    # finally check that the file does exist, or error out
-    [[ -e "tsimulus-cli.jar" ]] || error_exit "Error downloading TSimulus CLI. Cannot continue"
-}
-
-generate_ts_data(){
-    # if flow reaches here, validation checks are assumed to be passed and output file is ok to overwrite if present
-    java -jar tsimulus-cli.jar "${ts_def_file}" | tail -n +2 | sed -r 's/;/,/g' > temp.csv
+    # process the temp.csv file. Generate plots, save as feather for better read/write performance
+    process_ts_file
 }
 
 main() {
