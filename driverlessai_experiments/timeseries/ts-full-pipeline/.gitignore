@@ -1,8 +1,13 @@
-# Exclude pycharm foler
+# Exclude specific files
+scratch.py
+
+# Exclude pycharm folder
 .idea
 
 # Exclude files based on extensions
 *.jar
 *.csv
+*.png
+*.pickle
 
 
