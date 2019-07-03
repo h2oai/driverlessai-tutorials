@@ -3,6 +3,8 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 
+from pandas.plotting import register_matplotlib_converters
+
 @click.command()
 @click.argument('input', type=click.Path(exists=True))
 @click.argument('output', type=click.Path(exists=False))
@@ -29,15 +31,21 @@ def process(input, output):
     # Round Sale and convert from float to int64
     df['Sale'] = pd.Series.round(df['Sale']).apply(np.int64)
     df['StoreID'] = df['StoreID'].astype('category')
+    df['Product'] = df['Product'].astype('category')
 
 
     # Create TS plots for each store id in a separate file
-    for s in pd.Series.unique(df['StoreID']):
-        plt = sns.lineplot(x='Timeslot',
-                           y='Sale',
-                           hue='Product',
-                           data=df[df['StoreID'] == s])
-        plt.get_figure().savefig(s+'_ts.png')
+    register_matplotlib_converters()
+    sns.set_context('notebook')
+
+    sns.relplot(x='Timeslot',
+                y='Sale',
+                hue='StoreID',
+                row='Product',
+                kind='line',
+                height=3,
+                aspect=10,
+                data=df).fig.savefig(output+'_plot.svg')
 
     # Store the file as pickle
     df.to_pickle(output+'.pickle')
