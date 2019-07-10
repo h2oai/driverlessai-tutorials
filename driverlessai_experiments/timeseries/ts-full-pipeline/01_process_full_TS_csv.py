@@ -33,6 +33,9 @@ def process(input, output):
     df['StoreID'] = df['StoreID'].astype('category')
     df['Product'] = df['Product'].astype('category')
 
+    # Set dataframe index to help easy slicing
+    df.set_index('Timeslot', drop=False, inplace=True)
+
 
     # Create TS plots for each store id in a separate file
     register_matplotlib_converters()
