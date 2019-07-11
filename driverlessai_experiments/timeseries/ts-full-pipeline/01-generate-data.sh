@@ -10,6 +10,7 @@ conda_env_name="ts-pipeline-env"
 conda_env_def_file="environment.yml"
 ts_process_script="01_process_full_TS_csv.py"
 tmp_csv_file="temp.csv"
+fullts_data_directory="data_fullts"
 
 error_exit(){
     echo ""
@@ -23,7 +24,7 @@ print_usage(){
     echo "  bash $0 -d <tsdf.json> -o <output> [-f | --force] [-h | --help]"
     echo "Options:"
     echo "  -d <tsdf.json>            Timeseries definition file. Must be JSON file."
-    echo "  -o <output>               Output file name. Will generate <output>.csv, <output>.pickle, and <output>.svg files"
+    echo "  -o <output>               Output file name. Will generate <output>.csv, <output>.pickle, and <output>.svg files in ${fullts_data_directory} directory"
     echo "  -f, --force               Force overwrite of output file."d sdfsdfsadfsdfsdf
     echo "  -h, --help                Display usage information."
     echo "Details:"
@@ -42,7 +43,7 @@ check_or_download_tsimulus(){
 
 generate_ts_data(){
     # if flow reaches here, validation checks are assumed to be passed and output file is ok to overwrite if present
-    java -jar tsimulus-cli.jar "${ts_def_file}" | tail -n +2 | sed -r 's/;/,/g' > "${tmp_csv_file}"
+    java -jar tsimulus-cli.jar "${ts_def_file}" | tail -n +2 | sed -r 's/;/,/g' > "${fullts_data_directory}/${tmp_csv_file}"
 }
 
 check_create_condaenv(){
@@ -58,9 +59,11 @@ check_create_condaenv(){
 process_ts_file(){
     # if control reaches here, then conda environment is available
     [[ -e "${ts_process_script}" ]] || error_exit "Python script to process timeseries data not found"
-    source activate "${conda_env_name}" &&
-        python "${ts_process_script}" "${tmp_csv_file}" "${ts_out_file}" &&
-        mv "${tmp_csv_file}" "${ts_out_file}.csv"
+    pushd "${fullts_data_directory}" > /dev/null &&
+        source activate "${conda_env_name}" &&
+        python "${script_dir}/${ts_process_script}" "${tmp_csv_file}" "${ts_out_file}"  &&
+        mv "${tmp_csv_file}" "${ts_out_file}.csv" &&
+        popd > /dev/null
 }
 
 parse_args_then_exec(){
@@ -98,10 +101,13 @@ parse_args_then_exec(){
     [[ ! -z "${ts_out_file}" ]] || { print_usage; error_exit "Timeseries output file is mandatory"; }
 
     # check if output file exist. If exists, and overwrite option is not specified then show error
-    if [[ -e "${ts_out_file}.csv" || -e "${ts_out_file}.pickle" ]] && [[ "${force_overwrite}" == false ]]; then
+    if [[ -e "${fullts_data_directory}/${ts_out_file}.csv" || -e "${fullts_data_directory}/${ts_out_file}.pickle" ]] && [[ "${force_overwrite}" == false ]]; then
         print_usage
         error_exit "Cannot overwite existing file. Use -f option"
     fi
+
+    # Make fullts_data directory if it does not exists. if, exists do nothing
+    mkdir -p "${fullts_data_directory}"
 
     # check Java exists, if not exit with error
     java -version 2>/dev/null || error_exit "Java required. Please install java runtime"
