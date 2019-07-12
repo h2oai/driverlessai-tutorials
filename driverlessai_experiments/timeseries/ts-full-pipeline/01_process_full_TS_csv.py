@@ -20,7 +20,6 @@ def process(in_file, output):
     # Read csv to data frame.
     df = pd.read_csv(in_file,
                      sep=',',
-                     header=0,
                      names=['Timeslot', 'StoreID', 'Product', 'Sale'],
                      parse_dates=['Timeslot'],
                      infer_datetime_format=True)
