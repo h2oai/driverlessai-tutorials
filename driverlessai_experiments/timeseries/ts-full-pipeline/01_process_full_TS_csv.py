@@ -5,23 +5,20 @@ import seaborn as sns
 
 from pandas.plotting import register_matplotlib_converters
 
+
 @click.command()
-@click.argument('input', type=click.Path(exists=True))
-@click.argument('output', type=click.Path(exists=False))
-def process(input, output):
+@click.option('-i', '--input', 'in_file', type=click.Path(exists=True), help='Input time series data file (csv)')
+@click.option('-o', '--output', 'output', type=click.STRING, help='Output file prefix.')
+def process(in_file, output):
     """
-    Process a time series file, create a plot, save the data as feather.
+    Process a time series file, create a plot, save the data as pickle.
 
-    This function processes the time series cav file, provided as INPUT.
-    Creates a plot of the time series, and then saves the file as OUTPUT
-    in the pickle format.
-
-    :param input: The input CSV file.
-    :param output: The output file name, will result in output.pickle file
-    :return: None
+    This function processes the time series csv file, provided as input.
+    Creates a plot of the time series and saves it as output_plot.svg.
+    It also converts the input csv file and stores it as output.pickle for faster processing.
     """
     # Read csv to data frame.
-    df = pd.read_csv(input,
+    df = pd.read_csv(in_file,
                      sep=',',
                      header=0,
                      names=['Timeslot', 'StoreID', 'Product', 'Sale'],
@@ -35,7 +32,6 @@ def process(input, output):
 
     # Set dataframe index to help easy slicing
     df.set_index('Timeslot', drop=False, inplace=True)
-
 
     # Create TS plots for each store id in a separate file
     register_matplotlib_converters()

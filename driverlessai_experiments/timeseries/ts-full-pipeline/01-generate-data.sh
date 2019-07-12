@@ -61,7 +61,7 @@ process_ts_file(){
     [[ -e "${ts_process_script}" ]] || error_exit "Python script to process timeseries data not found"
     pushd "${fullts_data_directory}" > /dev/null &&
         source activate "${conda_env_name}" &&
-        python "${script_dir}/${ts_process_script}" "${tmp_csv_file}" "${ts_out_file}"  &&
+        python "${script_dir}/${ts_process_script}" -i "${tmp_csv_file}" -o "${ts_out_file}"  &&
         mv "${tmp_csv_file}" "${ts_out_file}.csv" &&
         popd > /dev/null
 }
