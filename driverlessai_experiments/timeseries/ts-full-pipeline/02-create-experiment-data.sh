@@ -3,12 +3,12 @@
 # Commented. Enable for debugging
 # set -x
 
-force_overwrite=false
 current_dir="$(pwd)"
 script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 conda_env_name="ts-pipeline-env"
 conda_env_def_file="environment.yml"
-process_script="02_create_datasets.py"
+process_script="02_extract_experiment_datasets.py"
+exp_data_dir_root="experiment_data"
 
 error_exit(){
     echo ""
@@ -19,33 +19,21 @@ error_exit(){
 
 print_usage(){
     echo "Usage:"
-    echo "  bash $0 -i <fulldataset.pickle> -o <outdir> -s <train start time> -d <train duration> -g <gap> -f <forecast duration> [-h | --help]"
+    echo "  bash $0 -i <dataset.pickle> -s <train start date> -e <train end date> -g <gap> -t <test duration> [-h | --help]"
     echo "Options:"
-    echo "  -i <fulldataset.pickle>     Full time series dataset, created by 01-generate-data script. Provide .pickle file"
-    echo "  -o <outdir>                 Output directory name. Train and Test datasets will be created in this directory. Provide contextually logical name."
+    echo "  -i <dataset.pickle>         Full time series dataset, created by 01-generate-data script. Provide .pickle file"
     echo "  -s <train start date>       Starting date for Train data YYYY-MM-DD format. Train dataset will start from 00:00:00.000 hours for that date."
-    echo "  -d <train duration>         Training duration in days. Starting date is included in the duration."
+    echo "  -e <train end date>         Ending date for Train data in YYYY-MM-DD format. Train dataset will include data for this date till 23:00:00 hours i.e. full 24 hour period."
     echo "  -g <gap duration>           Gap (in days) between last training date and first testing date."
-    echo "  -f <forecast duration>      Duration (in days) for which we are forecasting. It starts from gap days after the last date in train dataset."
+    echo "  -t <test duration>          Duration (in days) for which we are generating test data. It starts from gap days after the last date in train dataset."
     echo "  -h, --help                  Display usage information."
     echo "Details:"
-    echo "  Creates train (train.csv), test (test.csv) datasets in the output directory specified as <outdir>."
-    echo "  Additionally a metadata file (metadata.json) will also be created that contains information about parameters"
-    echo "  passed to this script to generate the data files"
-}
-
-check_or_download_tsimulus(){
-    if [[ ! -e tsimulus-cli.jar ]]; then
-        local latest_tag=$(curl --silent 'https://api.github.com/repos/cetic/tsimulus-cli/releases/latest' | grep -Po '"tag_name": "\K.*?(?=")')
-        curl https://github.com/cetic/tsimulus-cli/releases/download/"${latest_tag}"/tsimulus-cli.jar --o tsimulus-cli.jar -silent
-    fi
-    # finally check that the file does exist, or error out
-    [[ -e "tsimulus-cli.jar" ]] || error_exit "Error downloading TSimulus CLI. Cannot continue"
-}
-
-generate_ts_data(){
-    # if flow reaches here, validation checks are assumed to be passed and output file is ok to overwrite if present
-    java -jar tsimulus-cli.jar "${ts_def_file}" | tail -n +2 | sed -r 's/;/,/g' > "${tmp_csv_file}"
+    echo "  Creates train and test datasets (csv and pickle) in the output directory. Also creates timeseries plots for both. "
+    echo "  The output directory will be created in the format sYYYYMMDD-eYYYYMMDD-gdG-tdF, where"
+    echo "  - sYYYYMMDD-eYYYYMMDD is the training dataset start and end date"
+    echo "  - gdG is the gap duration"
+    echo "  - tdF is the test duration"
+    echo "  When the script is executed with certain inputs which results in an output directory that already exists, no action is taken."
 }
 
 check_create_condaenv(){
@@ -60,10 +48,15 @@ check_create_condaenv(){
 
 process_ts_file(){
     # if control reaches here, then conda environment is available
-    [[ -e "${ts_process_script}" ]] || error_exit "Python script to process timeseries data not found"
-    source activate "${conda_env_name}" &&
-        python "${ts_process_script}" "${tmp_csv_file}" "${ts_out_file}" &&
-        mv "${tmp_csv_file}" "${ts_out_file}.csv"
+    [[ -e "${process_script}" ]] || error_exit "Python script to generate experiment data not found"
+    pushd "${exp_data_dir_root}/${exp_data_dir}" > /dev/null &&
+        source activate "${conda_env_name}" &&
+        python "${script_dir}/${process_script}" -i "${script_dir}/${ts_full_data_file}" \
+                                                 -s "${formatted_start_date}" \
+                                                 -e "${formatted_end_date}" \
+                                                 -g "${gap_duration}" \
+                                                 -t "${test_duration}" &&
+        popd > /dev/null
 }
 
 parse_args_then_exec(){
@@ -74,15 +67,34 @@ parse_args_then_exec(){
            -i )
                 shift
                 ts_full_data_file="$1"
-                # error if such file does not exits
-                [[ -e "${ts_full_data_file}" ]] || { print_usage; error_exit "Provided time series full data file does not exist."; }
+                # If file exists, proceed; else print message and exit with error code
+                [[ -f "${ts_full_data_file}" ]] || { print_usage; error_exit "Provided time series full data file does not exist."; }
                 ;;
-           -o )
+           -s )
                 shift
-                ts_out_file="$1"
+                start_date="$1"
+                # convert input to expected date format and check with input. if they match, input is in expected format, so proceed ; else error
+                formatted_start_date=$(date "+%F" -d "${start_date}" 2>/dev/null)
+                [[ "${formatted_start_date}" == "${start_date}" ]] || { print_usage; error_exit "Invalid start date or date format. Use YYYY-MM-DD format."; }
                 ;;
-            -f | --force )
-                force_overwrite=true
+           -e )
+                shift
+                end_date="$1"
+                # error is date is not in the valid format
+                formatted_end_date=$(date "+%F" -d "${end_date}" 2>/dev/null)
+                [[ "${formatted_end_date}" ==  "${end_date}" ]] || { print_usage; error_exit "Invalid end date or date format. Use YYYY-MM-DD format."; }
+                ;;
+           -g )
+                shift
+                gap_duration="$1"
+                # error is date is not in the valid format
+                [[ "${gap_duration}" =~  ^[0-9]+$ ]] || { print_usage; error_exit "Gap duration (days) is expected to be an integer. If no gap is needed pass 0."; }
+                ;;
+           -t )
+                shift
+                test_duration="$1"
+                # error is date is not in the valid format
+                [[ "${test_duration}" =~  ^[1-9][0-9]*$ ]] || { print_usage; error_exit "Test data duration (days) is expected to be a non-zero integer."; }
                 ;;
             -h | --help )
                 print_usage
@@ -96,27 +108,18 @@ parse_args_then_exec(){
         shift
     done
 
-    # If required parame
-    [[ ! -z "${ts_def_file}" ]] || { print_usage; error_exit "Timeseries definition file is mandatory"; }
-    [[ ! -z "${ts_out_file}" ]] || { print_usage; error_exit "Timeseries output file is mandatory"; }
+    # If required parameters are missing, print usage and exit
+    [[ ! -z "${ts_full_data_file}" ]] || { print_usage; error_exit "Timeseries input data file is mandatory"; }
+    [[ -f "${ts_full_data_file}" ]] || { print_usage; error_exit "Provided timeseries input data file is missing"; }
+    [[ ! -z "${formatted_start_date}" ]] || { print_usage; error_exit "Training data start date is mandatory"; }
+    [[ ! -z "${formatted_end_date}" ]] || { print_usage; error_exit "Training data end date is mandatory"; }
+    [[ ! -z "${gap_duration}" ]] || { print_usage; error_exit "Gap duration is mandatory. If no gap, pass 0 as the value"; }
+    [[ ! -z "${test_duration}" ]] || { print_usage; error_exit "Test data duration is mandatory"; }
 
-    # check if output file exist. If exists, and overwrite option is not specified then show error
-    if [[ -e "${ts_out_file}.csv" || -e "${ts_out_file}.pickle" ]] && [[ "${force_overwrite}" == false ]]; then
-        print_usage
-        error_exit "Cannot overwite existing file. Use -f option"
-    fi
-
-    # check Java exists, if not exit with error
-    java -version 2>/dev/null || error_exit "Java required. Please install java runtime"
-
-    # check curl exists
-    curl -V >/dev/null || error_exit "Curl required. Please install curl"
-
-    # check tsimulus cli available, if not, download it
-    check_or_download_tsimulus
-
-    # generate Timeseries data based on the definition file
-    generate_ts_data
+    # Check if experiment data directory exists, if so dont proceed. If it does not exist, create it.
+    exp_data_dir="s${formatted_start_date}-e${formatted_end_date}-gd${gap_duration}-td${test_duration}"
+    [[ ! -d "${exp_data_dir_root}/${exp_data_dir}" ]] || error_exit "Experiment data directory ${exp_data_dir_root}/${exp_data_dir} already exists. No action taken."
+    mkdir -p "${exp_data_dir_root}/${exp_data_dir}"
 
     # Create conda environment if it does not exist
     check_create_condaenv
