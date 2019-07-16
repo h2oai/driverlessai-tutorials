@@ -1,5 +1,8 @@
 import click
+import random
+
 import datetime as dt
+import numpy as np
 import pandas as pd
 import seaborn as sns
 
@@ -29,11 +32,17 @@ from pandas.plotting import register_matplotlib_converters
               required=True,
               type=click.INT,
               help='Duration (in days) for the testing dataset.')
+@click.option('-m', '--missing', 'missing_data_percentage',
+              default=0,
+              required=False,
+              type=click.INT,
+              help='Proportion (in %) of missing data in train and test datasets. Optional, defaults to 0')
 def process(input_pickle,
             train_start_date,
             train_end_date,
             gap_duration,
-            test_duration):
+            test_duration,
+            missing_data_percentage):
     """
     Creates train and test datasets (csv and pickle) in the output directory.
     Also creates timeseries plots for both the files.
@@ -43,6 +52,7 @@ def process(input_pickle,
     :param train_end_date: End date for training datset
     :param gap_duration: Gap (in days) between training and testing dataset.
     :param test_duration: Duration (in days) of the testing dataset.
+    :param missing_data_percentage: Proportion of missing data in train and test datasets. Optional, defaults to 0.
     :return: None
     """
     # Read the input data file
@@ -56,6 +66,11 @@ def process(input_pickle,
     # Slice data
     train_df = df[train_start_date:train_end_date]
     test_df = df[test_start_date:test_end_date]
+
+    # Add missing data
+    if missing_data_percentage != 0:
+        create_missing_data(train_df, missing_data_percentage, 3)
+        create_missing_data(test_df, missing_data_percentage, 3)
 
     # Plot train and test data
     create_plots(train_df, 'train')
@@ -83,6 +98,22 @@ def create_plots(data_frame,
                 height=3,
                 aspect=10,
                 data=data_frame).fig.savefig(filename_prefix+'_plot.svg')
+
+
+def create_missing_data(df,
+                        missing_data_percentage,
+                        target_col_index):
+    """
+    Creates missing data in the target column specified by the index (target_col_index).
+    Proportion of rows for which missing data is created is determined by missing_data_percentage
+
+    :param df: Input time series dataframe to inject NaN into.
+    :param missing_data_percentage: Proportion of rows to mark as missing target data
+    :param target_col_index: Index of the column (target) in which to create missing data
+    :return: None
+    """
+    rows, _ = df.shape
+    df.iloc[sorted(random.sample(range(rows), round(rows * missing_data_percentage/100))), target_col_index] = np.nan
 
 
 if __name__ == '__main__':
