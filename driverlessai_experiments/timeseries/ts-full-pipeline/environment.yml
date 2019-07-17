@@ -10,3 +10,4 @@ dependencies:
   - click
   - matplotlib
   - seaborn
+  - h2oai_client=1.6.3
