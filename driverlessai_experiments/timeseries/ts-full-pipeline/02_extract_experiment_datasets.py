@@ -64,8 +64,8 @@ def process(input_pickle,
     test_end_date = test_start_date + dt.timedelta(days=test_duration, hours=-1)
 
     # Slice data
-    train_df = df[train_start_date:train_end_date]
-    test_df = df[test_start_date:test_end_date]
+    train_df = df[train_start_date:train_end_date].copy()
+    test_df = df[test_start_date:test_end_date].copy()
 
     # Add missing data
     if missing_data_percentage != 0:
