@@ -77,8 +77,8 @@ def process(input_pickle,
     create_plots(test_df, 'test')
 
     # Save as CSV and pickle
-    train_df.to_csv('train.csv'); train_df.to_pickle('train.pickle')
-    test_df.to_csv('test.csv'); test_df.to_pickle('test.pickle')
+    save_datasets(train_df, 'train', as_csv=True, as_pickle=True)
+    save_datasets(test_df, 'test', as_csv=True, as_pickle=True)
 
 
 def create_plots(data_frame,
@@ -114,6 +114,26 @@ def create_missing_data(df,
     """
     rows, _ = df.shape
     df.iloc[sorted(random.sample(range(rows), round(rows * missing_data_percentage/100))), target_col_index] = np.nan
+
+
+def save_datasets(df: pd.DataFrame,
+                  filename: str,
+                  as_pickle=True,
+                  as_csv=True):
+    """
+    Saves the input dataframe as pickle and csv files, by default.
+
+    :param df: The dataframe to save
+    :param filename: File name to save as, output file will be filename.csv and filename.pickle
+    :param as_pickle: Flag to save file as pickle, by default True
+    :param as_csv: Flag to save file as csv, by default True
+    :return: None
+    """
+    if as_pickle:
+        df.to_pickle(filename+'.pickle')
+    if as_csv:
+        df.to_csv(filename+'.csv',
+                  sep=",", header=True, index=False)
 
 
 if __name__ == '__main__':
