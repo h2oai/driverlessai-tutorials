@@ -63,6 +63,7 @@ process_ts_file(){
         source activate "${conda_env_name}" &&
         python "${script_dir}/${ts_process_script}" -i "${tmp_csv_file}" -o "${ts_out_file}"  &&
         mv "${tmp_csv_file}" "${ts_out_file}.csv" &&
+        conda deactivate &&
         popd > /dev/null
 }
 

@@ -60,6 +60,7 @@ process_ts_file(){
                                                  -g "${gap_duration}" \
                                                  -t "${test_duration}" \
                                                  -m "${missing_data_percentage}" &&
+        conda deactivate &&
         popd > /dev/null
 }
 
