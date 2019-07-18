@@ -77,6 +77,8 @@ run_experiment(){
         conda deactivate &&
         popd > /dev/null
 
+        # remove temp directory if experiment.json does not exist.
+        [[ -f "${exp_data_dir}/${exp_run_dir_root}/${temp_dir_name}/experiment.json" ]]  || { rm -rf "${exp_data_dir}/${exp_run_dir_root}/${temp_dir_name}"; }
 }
 
 parse_args_then_exec(){
