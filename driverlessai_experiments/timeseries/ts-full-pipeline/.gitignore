@@ -1,8 +1,10 @@
 # Exclude specific files
 scratch.py
 
-# Exclude pycharm folder
+# Exclude specific folders
 .idea
+data_fullts
+experiment_data
 
 # Exclude files based on extensions
 *.jar
