@@ -30,7 +30,7 @@ print_usage(){
     echo "  -m <missing data %>         Proportion of target data that is missing in both Training and Test dataset. Optional, defaults to 0."
     echo "  -h, --help                  Display usage information."
     echo "Details:"
-    echo "  Creates train and test datasets (csv and pickle) in the output directory. Also creates timeseries plots for both. "
+    echo "  Creates train, gap and test datasets (csv and pickle) in the output directory. Also creates timeseries plots for train and test datasets. "
     echo "  The output directory will be created in the format sYYYYMMDD-eYYYYMMDD-gdG-tdF-mMP, where"
     echo "  - sYYYYMMDD-eYYYYMMDD is the training dataset start and end date"
     echo "  - gdG is the gap duration"

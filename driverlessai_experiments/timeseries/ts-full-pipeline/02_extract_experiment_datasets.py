@@ -60,7 +60,9 @@ def process(input_pickle,
 
     # Calculate data slice times
     train_end_date = train_end_date.replace(hour=23)
-    test_start_date = train_end_date + dt.timedelta(days=gap_duration, hours=1)
+    gap_start_date = train_end_date + dt.timedelta(hours=1)
+    gap_end_date = gap_start_date + dt.timedelta(days=gap_duration, hours=-1)
+    test_start_date = gap_end_date + dt.timedelta(hours=1)
     test_end_date = test_start_date + dt.timedelta(days=test_duration, hours=-1)
 
     # Slice data
@@ -80,6 +82,11 @@ def process(input_pickle,
     save_datasets(train_df, 'train', as_csv=True, as_pickle=True)
     save_datasets(test_df, 'test', as_csv=True, as_pickle=True)
 
+    # Handle gap data
+    if gap_duration != 0:
+        gap_df = df[gap_start_date:gap_end_date].copy()
+        create_missing_data(gap_df, missing_data_percentage, 3)
+        save_datasets(gap_df, 'gap', as_csv=True, as_pickle=True)
 
 def create_plots(data_frame,
                  filename_prefix):
