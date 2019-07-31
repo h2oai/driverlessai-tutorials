@@ -25,7 +25,7 @@ print_usage(){
     echo "Options:"
     echo "  -d <tsdf.json>            Timeseries definition file. Must be JSON file."
     echo "  -o <output>               Output file name. Will generate <output>.csv, <output>.pickle, and <output>.svg files in ${fullts_data_directory} directory"
-    echo "  -f, --force               Force overwrite of output file."d sdfsdfsadfsdfsdf
+    echo "  -f, --force               Force overwrite of output file."
     echo "  -h, --help                Display usage information."
     echo "Details:"
     echo "  Creates the master time series dataset for this pipeline demo. It simulates a larger database"
