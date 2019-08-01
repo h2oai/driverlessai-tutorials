@@ -2,10 +2,10 @@ import click
 import glob
 import importlib
 import os
+import re
 
 
-# import datetime as dt
-# import numpy as np
+import datetime as dt
 import pandas as pd
 
 
@@ -46,13 +46,22 @@ def process(experiment_name,
                           parse_dates=['Timeslot'],
                           infer_datetime_format=True)
 
+    # Create the output directory if it does not exists
+    os.makedirs(f'predicted/{experiment_name}', exist_ok=True)
+
+    # Compile the regex
+    regex = re.compile(r'([0-9]{5})-ss([0-9 -:]{19})-se([0-9 -:]{19})')
+
     # Glob all files to score, from the 'score' directory and then process each of them
     for file in glob.glob('score/*.csv'):
+        file_name = os.path.splitext(os.path.basename(file))[0]
+        capture_groups = regex.match(file_name)
+        score_start_time = dt.datetime.strptime(capture_groups.group(2), r'%Y-%m-%d %H:%M:%S')
+        score_end_time = dt.datetime.strptime(capture_groups.group(3), r'%Y-%m-%d %H:%M:%S')
         score_ds = pd.read_csv(file)
         preds_ds = scorer.score_batch(score_ds)
-        file_name = os.path.splitext(os.path.basename(file))[0]
         save_datasets(preds_ds,
-                      f'predicted/{file_name}',
+                      f'predicted/{experiment_name}/{file_name}',
                       as_pickle=False,
                       as_csv=True)
 

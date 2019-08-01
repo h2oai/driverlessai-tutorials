@@ -82,8 +82,9 @@ def process(tta_dir,
         score_df = df[slot['score_start']:slot['score_end']].copy()
         score_df['Sale'] = np.nan
         bind_df = pd.concat([tta_df, score_df])
+        file_name = f"{slot['roll_counter_str']}-ss{slot['score_start']}-se{slot['score_end']}"
         save_datasets(bind_df,
-                      tta_dir + "/score/" + slot['roll_counter_str'],
+                      tta_dir + "/score/" + file_name,
                       as_csv=True,
                       as_pickle=False)
 
