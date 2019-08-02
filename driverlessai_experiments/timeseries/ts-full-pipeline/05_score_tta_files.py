@@ -66,14 +66,37 @@ def process(experiment_name,
 
     # Glob all files to score, from the 'score' directory and then process each of them
     for file in glob.glob('score/*.csv'):
+        # Extract scoring duration from the file name. Calculate how many data points it makes
+        # Per hour is 8 data points
         file_name = os.path.splitext(os.path.basename(file))[0]
         capture_groups = regex.match(file_name)
+        file_order = capture_groups.group(1)
         score_start_time = dt.datetime.strptime(capture_groups.group(2), r'%Y-%m-%d %H:%M:%S')
         score_end_time = dt.datetime.strptime(capture_groups.group(3), r'%Y-%m-%d %H:%M:%S')
+        last_n_values = (((score_end_time - score_start_time).seconds // 3600) + 1) * 8
+
+        # Load dataset to score and score it
         score_ds = pd.read_csv(file)
         preds_ds = scorer.score_batch(score_ds)
+        preds_ds.columns = ['Sale_hat']
+        preds_ds = pd.concat([score_ds, preds_ds], axis=1)
+
+        # Get actual and predicted value arrays.
+        # Actuals are obtained from test data using score start and end time to slice
+        # Predicted data frame even predicts and returns TTA data. So use last_n_values to slice it
+        actual_values = test_ds.loc[score_start_time:score_end_time, 'Sale'].values
+        predicted_values = preds_ds['Sale_hat'].values[-last_n_values:]
+
+        # Ensure the arrays match
+        assert len(actual_values) == len(predicted_values)
+        df = pd.DataFrame({'actual': actual_values, 'predicted': predicted_values})
+        # Note that we drop the rows in case there is an NaN in actuals to calculate RMSE
+        df.dropna(inplace=True)
+        rmse = ((df['predicted'] - df['actual']) ** 2).mean() ** 0.5
+
+        # Save the predictions
         save_datasets(preds_ds,
-                      f'predicted/{experiment_name}/{file_name}',
+                      f'predicted/{experiment_name}/{file_order}-m{rmse}',
                       as_pickle=False,
                       as_csv=True)
 
