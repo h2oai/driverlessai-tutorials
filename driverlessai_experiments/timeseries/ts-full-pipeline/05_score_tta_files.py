@@ -19,8 +19,15 @@ import pandas as pd
                                                               readable=True),
               required=True,
               help='Testing dataset CSV file path.')
+@click.option('-g', '--gap', 'gap_ds_file', type=click.Path(exists=False,
+                                                            file_okay=True,
+                                                            dir_okay=False,
+                                                            readable=True),
+              required=False,
+              help='Gap dataset CSV file path.')
 def process(experiment_name,
-            test_ds_file):
+            test_ds_file,
+            gap_ds_file):
     """
     Score the TTA files in the 'score' directory, and create corresponding prediction files in the
     'predict/<experiment name> directory. Also calculate the metric (RMSE) to measure how good is the
@@ -28,6 +35,7 @@ def process(experiment_name,
 
     :param experiment_name: Name of the experiment run
     :param test_ds_file: Path of the test dataset file used for RMSE calculation
+    :param gap_ds_file: Path of the gap dataset file used for RMSE calculation
     :return: None
     """
     # Note the shell wrapper ensures this python file is executed in the TTA scoring data directory.
@@ -40,11 +48,15 @@ def process(experiment_name,
 
     # Load the test datasset
     # Read csv to data frame.
-    test_ds = pd.read_csv(test_ds_file,
-                          sep=',',
-                          names=['Timeslot', 'StoreID', 'Product', 'Sale'],
-                          parse_dates=['Timeslot'],
-                          infer_datetime_format=True)
+    # test_ds = pd.read_csv(test_ds_file,
+    #                       sep=',',
+    #                       names=['Timeslot', 'StoreID', 'Product', 'Sale'],
+    #                       parse_dates=['Timeslot'],
+    #                       infer_datetime_format=True)
+    test_ds = pd.read_pickle(test_ds_file)
+    if gap_ds_file is not None and os.path.exists(gap_ds_file):
+        gap_ds = pd.read_pickle(gap_ds_file)
+        test_ds = pd.concat(gap_ds, test_ds)
 
     # Create the output directory if it does not exists
     os.makedirs(f'predicted/{experiment_name}', exist_ok=True)
