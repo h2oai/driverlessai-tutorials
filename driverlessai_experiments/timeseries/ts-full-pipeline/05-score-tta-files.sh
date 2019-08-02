@@ -148,8 +148,10 @@ score_tta_scoring_files(){
     pushd "${scoring_data_dir}" > /dev/null &&
         source activate "${conda_env_name}" &&
         python "${script_dir}/${process_script}" -n "${experiment_name}" \
-                                                 -t "${script_dir}/${experiment_data_dir}/test.csv" &&
+                                                 -t "${script_dir}/${experiment_data_dir}/test.pickle" \
+                                                 -g "${script_dir}/${experiment_data_dir}/gap.pickle" &&
         conda deactivate &&
+        rm -rf tmp &&
         popd > /dev/null
 }
 
