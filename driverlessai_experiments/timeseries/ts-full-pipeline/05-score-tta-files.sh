@@ -8,6 +8,8 @@ script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 process_script="05_score_tta_files.py"
 exp_data_dir_root="experiment_data"
 tta_dir_prefix="tta-scoring-data"
+use_pipeline="python"
+use_method="module"
 
 error_exit(){
     echo ""
@@ -18,16 +20,17 @@ error_exit(){
 
 print_usage(){
     echo "Usage:"
-    echo "  bash $0 -e <experiment run dir> -s <scoring data dir> -p <python|mojo> [-h | --help]"
+    echo "  bash $0 -e <experiment run dir> -s <scoring data dir> [-p <python|mojo>] [-m <module|api>] [-h | --help]"
     echo "Options:"
     echo "  -e <experiment run dir>     Experiment run directory containing scorer.zip. Will have same name as experiment in Driverless AI"
     echo "  -s <scoring data dir>       TTA scoring data directory created in step 04. Name will start with ${tta_dir_prefix}"
-    echo "  -p <python|mojo>            Use Driverless AI Python or Mojo (Java) pipeline for scoring"
+    echo "  -p <python|mojo>            Optional, defaults to python. Use Driverless AI Python or Mojo (Java) pipeline for scoring"
+    echo "  -m <module|api>             Optional, defaults to module. Score using python module in code or using HTTP API endpoint"
     echo "  -h, --help                  Display usage information."
     echo "Details:"
     echo "  Scores the files in scoring data directory using the scoring pipeline for selected experiment. Also creates the necessary"
     echo "  environments with dependencies for the scoring pipeline to work."
-    echo "  Scoring files will be pick from the 'score' sub-directory of selected scoring data directory."
+    echo "  Scoring files will be picked from the 'score' sub-directory of selected scoring data directory."
     echo "  Output files will be generated in the 'predicted' sub-directory of selected scoring data directory."
 }
 
@@ -58,6 +61,11 @@ parse_args_validate_then_exec(){
                 use_pipeline="$1"
                 [[ "${use_pipeline}" =~ ^(python|mojo)$ ]] || { print_usage; error_exit "Incorrect pipeline option. Only 'python' and 'mojo' are supported."; }
                 ;;
+            -m )
+                shift
+                use_method="$1"
+                [[ "${use_method}" =~ ^(module|api)$ ]] || { print_usage; error_exit "Incorrect method option. Only 'module' and 'api' are supported."; }
+                ;;
             -h | --help )
                 print_usage
                 exit 0
@@ -74,7 +82,6 @@ parse_args_validate_then_exec(){
     # If required parameters are missing, print usage and exit
     [[ ! -z "${exp_run_dir}" ]] || { print_usage; error_exit "Experiment run directory is mandatory"; }
     [[ ! -z "${scoring_data_dir}" ]] || { print_usage; error_exit "Scoring data directory is mandatory"; }
-    [[ ! -z "${use_pipeline}" ]] || { print_usage; error_exit "Pipeline type is mandatory"; }
 
     # Check if experiment run dir has required pipeline.zip file based on the selected pipeline option
     case "${use_pipeline}" in
@@ -83,7 +90,7 @@ parse_args_validate_then_exec(){
             ;;
         mojo )
             [[ -f "${exp_run_dir}/mojo.zip" ]] || { print_usage; error_exit "Experiment data directory ${script_dir}/${exp_run_dir} does not contain mojo scoring pipeline mojo.zip."; }
-            error_exit "Mojo pipeline option not yet supported. Please use python type"
+            error_exit "Mojo pipeline option not yet supported for Test Time Augmentation scoring for Time Series experiments. Please use python type"
             ;;
         * )
             print_usage
@@ -122,7 +129,19 @@ parse_args_validate_then_exec(){
     # Create conda environment if it does not exist
     check_create_condaenv
 
-    score_tta_scoring_files
+    case "${use_method}" in
+        module )
+            score_tta_files_using_module
+            ;;
+        api )
+            score_tta_files_using_api
+            ;;
+        * )
+            print_usage
+            error_exit "Incorrect method option, only 'module' and 'api' are supported"
+            ;;
+    esac
+
 }
 
 check_create_condaenv(){
@@ -142,14 +161,30 @@ check_create_condaenv(){
     fi
 }
 
-score_tta_scoring_files(){
+score_tta_files_using_module(){
     # if control reaches here, then conda environment is available
-    [[ -e "${process_script}" ]] || error_exit "Python script to generate experiment data not found"
+    [[ -e "${process_script}" ]] || error_exit "Python script ${process_script} data not found"
     pushd "${scoring_data_dir}" > /dev/null &&
         source activate "${conda_env_name}" &&
         python "${script_dir}/${process_script}" -n "${experiment_name}" \
                                                  -t "${script_dir}/${experiment_data_dir}/test.pickle" \
                                                  -g "${script_dir}/${experiment_data_dir}/gap.pickle" &&
+        conda deactivate &&
+        rm -rf tmp &&
+        popd > /dev/null
+}
+
+score_tta_files_using_api(){
+    # if control reaches here, then conda environment is available
+    [[ -e "${process_script}" ]] || error_exit "Python script ${process_script} data not found"
+    pushd "${scoring_data_dir}" > /dev/null &&
+        source activate "${conda_env_name}" &&
+        (python  "${exp_run_dir}/scoring-pipeine/http_server.py --port=9090" > /dev/null 2>&1 &) &&
+        python "${script_dir}/${process_script}" -n "${experiment_name}" \
+                                                 -t "${script_dir}/${experiment_data_dir}/test.pickle" \
+                                                 -g "${script_dir}/${experiment_data_dir}/gap.pickle" \
+                                                 --api &&
+        pkill -f http_server.py &&
         conda deactivate &&
         rm -rf tmp &&
         popd > /dev/null
