@@ -1,9 +1,10 @@
 import click
 import glob
 import importlib
+import json
 import os
 import re
-
+import requests
 
 import datetime as dt
 import pandas as pd
@@ -25,9 +26,13 @@ import pandas as pd
                                                             readable=True),
               required=False,
               help='Gap dataset CSV file path.')
+@click.option('-a', '--api',
+              is_flag=True,
+              default=False)
 def process(experiment_name,
             test_ds_file,
-            gap_ds_file):
+            gap_ds_file,
+            api):
     """
     Score the TTA files in the 'score' directory, and create corresponding prediction files in the
     'predict/<experiment name> directory. Also calculate the metric (RMSE) to measure how good is the
@@ -36,6 +41,7 @@ def process(experiment_name,
     :param experiment_name: Name of the experiment run
     :param test_ds_file: Path of the test dataset file used for RMSE calculation
     :param gap_ds_file: Path of the gap dataset file used for RMSE calculation
+    :param api: Use python HTTP server on port 9090 for scoring instead of imported python scoring module
     :return: None
     """
     # Note the shell wrapper ensures this python file is executed in the TTA scoring data directory.
@@ -43,8 +49,6 @@ def process(experiment_name,
     # print(experiment_name)
     # print(test_ds)
 
-    # Get DAI scorer
-    scorer = get_dai_scorer(experiment_name)
 
     # Load the test datasset
     # Read csv to data frame.
@@ -77,7 +81,12 @@ def process(experiment_name,
 
         # Load dataset to score and score it
         score_ds = pd.read_csv(file)
-        preds_ds = scorer.score_batch(score_ds)
+        if api:
+            preds_ds = score_using_http_api(score_ds)
+        else:
+            preds_ds = score_using_module(experiment_name, score_ds)
+
+        # Rename the predicted Sale column as Sale_hat and concat it to the original dataset
         preds_ds.columns = ['Sale_hat']
         preds_ds = pd.concat([score_ds, preds_ds], axis=1)
 
@@ -94,11 +103,55 @@ def process(experiment_name,
         df.dropna(inplace=True)
         rmse = ((df['predicted'] - df['actual']) ** 2).mean() ** 0.5
 
+        if api:
+            file_name = f'predicted/{experiment_name}/{file_order}-api-m{rmse}'
+        else:
+            file_name = f'predicted/{experiment_name}/{file_order}-mod-m{rmse}'
+
         # Save the predictions
         save_datasets(preds_ds,
-                      f'predicted/{experiment_name}/{file_order}-m{rmse}',
+                      file_name,
                       as_pickle=False,
                       as_csv=True)
+
+
+def score_using_module(experiment_name: str,
+                       df: pd.DataFrame):
+    """
+    Score the input dataframe using python module
+
+    :param experiment_name: Name of the experiment
+    :param df: Input pandas dataframe to score
+    :return: A pandas DataFrame with the predictions
+    """
+    # Get DAI scorer
+    scorer = get_dai_scorer(experiment_name)
+    return scorer.score_batch(df)
+
+
+def score_using_http_api(df: pd.DataFrame):
+    """
+    Score the input dataframe using the HTTP api endpoint. Assumes that the HTTP endpoint is
+    started by the wrapper script and listening on localhost:9090 at the /rpc endpoint
+
+    :param df: Input pandas dataframe to score
+    :return: A pandas DataFrame with the predictions
+    """
+    d = {
+            "id": 1,
+            "method": "score_batch",
+            "params": {}
+    }
+    d['params']['rows'] = json.loads(df.to_json(orient='records'))
+
+    # Send the post to HTTP endpoint
+    headers = {'Content-Type': 'application/json'}
+    r = requests.post(url="http://localhost:9090/rpc",
+                      json=d,
+                      headers=headers)
+    results_list = r.json()['result']
+    preds_list = [val for sub_list in results_list for val in sub_list]
+    return pd.DataFrame(preds_list, columns=['Sale'])
 
 
 def get_dai_scorer(experiment_name: str):
