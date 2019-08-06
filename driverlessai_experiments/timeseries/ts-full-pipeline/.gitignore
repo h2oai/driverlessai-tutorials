@@ -9,7 +9,6 @@ experiment_data
 # Exclude files based on extensions
 *.jar
 *.csv
-*.png
 *.svg
 *.pickle
 
