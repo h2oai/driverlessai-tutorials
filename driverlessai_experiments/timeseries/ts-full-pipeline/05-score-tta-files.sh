@@ -180,6 +180,7 @@ score_tta_files_using_api(){
     pushd "${scoring_data_dir}" > /dev/null &&
         source activate "${conda_env_name}" &&
         (python  "${exp_run_dir}/scoring-pipeine/http_server.py --port=9090" > /dev/null 2>&1 &) &&
+        sleep 10 &&
         python "${script_dir}/${process_script}" -n "${experiment_name}" \
                                                  -t "${script_dir}/${experiment_data_dir}/test.pickle" \
                                                  -g "${script_dir}/${experiment_data_dir}/gap.pickle" \
