@@ -9,6 +9,8 @@ import requests
 import datetime as dt
 import pandas as pd
 
+from tqdm import tqdm
+
 
 @click.command()
 @click.option('-n', '--name', 'experiment_name',
@@ -69,7 +71,7 @@ def process(experiment_name,
     regex = re.compile(r'([0-9]{5})-ss([0-9 -:]{19})-se([0-9 -:]{19})')
 
     # Glob all files to score, from the 'score' directory and then process each of them
-    for file in glob.glob('score/*.csv'):
+    for file in tqdm(glob.glob('score/*.csv')):
         # Extract scoring duration from the file name. Calculate how many data points it makes
         # Per hour is 8 data points
         file_name = os.path.splitext(os.path.basename(file))[0]

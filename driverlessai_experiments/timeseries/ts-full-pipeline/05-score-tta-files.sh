@@ -157,6 +157,7 @@ check_create_condaenv(){
         conda env create -f  "${exp_run_dir}/scoring-pipeline/environment.yml" || error_exit "Error creating conda environment"
         source activate "${conda_env_name}" &&
             conda install -y click &&
+            conda install -y -c conda-forge tqdm &&
             conda deactivate
     fi
 }
