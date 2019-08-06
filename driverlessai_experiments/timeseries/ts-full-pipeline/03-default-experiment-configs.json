@@ -1,0 +1,28 @@
+{
+  "dataset_key": "",
+  "testset_key": "",
+  "validset_key": "",
+  "target_col": "Sale",
+  "fold_col": "",
+  "weight_col": "",
+  "orig_time_col": "Timeslot",
+  "time_col": "Timeslot",
+  "is_classification": false,
+  "cols_to_drop": [],
+  "enable_gpus": false,
+  "seed": 1234,
+  "accuracy": 6,
+  "time": 3,
+  "interpretability": 8,
+  "scorer": "RMSE",
+  "time_groups_columns": [
+    "Timeslot",
+    "StoreID",
+    "Product"
+  ],
+  "time_period_in_seconds": 3600,
+  "num_prediction_periods": 24,
+  "num_gap_periods": 0,
+  "is_timeseries": true,
+  "config_overrides": "recipe = \"auto\"\nenable_xgboost = \"auto\"\nenable_lightgbm = \"auto\"\nenable_rf = \"auto\"\nenable_glm = \"auto\"\nenable_tensorflow = \"off\"\nenable_rulefit = \"off\"\nenable_ftrl = \"off\"\nparameter_tuning_num_models = -1\nfixed_ensemble_level = -1\ncheck_distribution_shift = true\ndrop_features_distribution_shift_threshold_auc = 0.6\ntarget_transformer = \"auto\"\nenable_target_encoding = true\ntime_series_recipe = true\noverride_lag_sizes = \"\"\nprob_lag_non_targets = 0.1\nmake_python_scoring_pipeline = true\nmake_mojo_scoring_pipeline = false\nrulefit_max_num_rules = -1\nfeature_brain_level = 2\nquantile_imbalanced_sampling = false\nholiday_features = true\nseed = 1234\nforce_64bit_precision = false\nmin_num_rows = 100\nmax_orig_cols_selected = 10000\nnfeatures_max = -1\nfeature_evolution_data_size = 100000000\nfeature_engineering_effort = 5\nmax_feature_interaction_depth = 8\nmax_relative_cardinality = 0.95\nstring_col_as_text_threshold = 0.3\ntensorflow_max_epochs = 10\nenable_tensorflow_textcnn = false\nenable_tensorflow_textbigru = false\nenable_tensorflow_charcnn = false\ntensorflow_max_epochs_nlp = 2\nmin_dai_iterations = 0\nmax_nestimators = 3000\nmax_nestimators_feature_evolution_factor = 0.2\nmax_learning_rate = 0.5\nmax_cores = -1\nnum_gpus_per_model = 1\nnum_gpus_per_experiment = -1\ngpu_id_start = 0\ncompute_correlation = false\nhigh_correlation_value_to_report = 0.95\ndump_modelparams_every_scored_indiv = false\ndump_varimp_every_scored_indiv = false\ndetailed_traces = false\nconfig_overrides = \"\"\n"
+}
