@@ -4,9 +4,14 @@ Time Series pipeline with Test Time Augmentation
 
 Overview
 --------
-This directory contains sample code to demonstrate an end to end pipeline implementation for Time Series problems using H2O Driverless AI. We start by training a time-series experiment in Driverless AI. Then, contrary to other time-series examples in this repository, which use Driverless AI server to score new data, this example uses the python scoring pipeline to score new data. 
+This directory contains sample code to demonstrate an end to end pipeline implementation for Time Series problems using H2O Driverless AI. 
 
-As if this writing, MOJO pipeline does not support TTA based scoring for time-series experiments.
+There are other examples in this repository which also show how to do time-series with DAI, but in this example we use the scoring pipeline to predict future data instead of using the prediction endpoint on the Driverless AI server.  
+
+
+We start by training a time-series experiment in Driverless AI. Then proceed to create a conda based python environment in which the python scoring pipeline is deployed. Finally, we show how the scoring module can be used as an imported module or an HTTP API endpoint for scoring. 
+
+Since this example deals with [Test Time Augmentation][4] and the rolling window approach for scoring (details below), we are required to use the python scoring pipeline. As if this writing, MOJO pipeline does not support TTA based scoring for time-series experiments.
 
 
 Pre-requisites
@@ -26,11 +31,54 @@ The below steps constitute the pipeline, where each step uses the output of the 
 - __Step 3__: We train time-series experiment using [H2O Driverless AI][2] on the experiment specific data. This step also downloads the scoring pipelines (Mojo and Python) and other experiment artifcats that can be used later if needed.
 - __Step 4__: We generate rolling window based [Test Time Augmented (TTA)][4] scoring files from gap and test datasets generated in step 2. In general, this step simulates the passage of time and will not be needed in a real world implementation.
 - __Step 5__: Finally, we score the rolling window based TTA data generated in the previous step using the scoring pipeline obtained from an experiment trained in Step 3. This step also takes care of creating a python environment and installing required dependencies and modules for Driverless AI's scoring pipeline to work in that environment.
+
+
+Important Definitions
+---------------------
+
+Before you proceed, we strongly recommend you read the below two sections in DAI documentation
+
+- [Understanding Gap and Horizon][5]
+- [Forecasting using Test Time Augmentation][4]
+
+I believe that reading the above sections makes clear the definition of the below terms
+
+![Training, Gap and Horizon](http://docs.h2o.ai/driverless-ai/latest-lts/docs/userguide/_images/time_series_horizon.png)
+
+_Figure 1: DAI time-series experiment configuration without TTA or Rolling Window_
+
+- __Training data duration__: The period of time between which the data available is used for training the model 
+- __Gap duration__ : The period of time between the training period and testing period.
+- __Test data duration/Horizon__ : This is the duration of data for which the model is expected to provide a prediction based on the patterns it learns from the Training data. Incidentally, this is also the duration of time for which data needs to be passed for scoring into the `score_batch` method of the scoring module.
+
+> DAI scoring pipeline for Time Series experiment cannot predict beyond the Test Data Duration (Horizon) that is configured during experiment training.
+
+
  
+To predict beyond that time period you need to either (1) retrain a new experiment on new data OR (2) use the Test Time Augmentation (TTA) technique to update the earlier model with new data at the time for scoring and then score on future data as needed.
+ 
+![Rolling Window and Test Time Augmentation](https://raw.githubusercontent.com/h2oai/driverlessai-tutorials/hk-ts-tta-pipeline/driverlessai_experiments/timeseries/ts-full-pipeline/images/TTA-RollWindow-duration.png) 
+
+###### _Figure 2: DAI time-series experiment configuration with TTA and Rolling Window_
+ 
+When using TTA and Rolling Window concept we need to introduce two new terms 
+
+- __Prediction Duration__ : This is the duration configured as the test data duration (horizon) while training the DAI experiment. 
+
+    If you do not want to predict beyond the Test Data Duration configured during experiment training using the experiment's scoring pipeline, then in that case __Prediction Duration (PD)__ will be the same as __Test Data Duration/Horizon__ and the situation is as depicted in Figure 1.
+    
+    When using TTA, this is the Horizon during experiment training. During scoring, it will be the duration of data passed to score for each invocation of `score_batch` method of the scoring module. 
+
+- __Rolling Duration__ : This is the amount of duration by which we move ahead (roll) in time before we score again for next prediction duration data. It would be more clear in figure 2.
+
+> When TTA is used, technically there does not exist a horizon beyond which TTA will stop scoring. However, for practical reasons like reduced accuracy and/or large scoring data frame sizes, it would so happen that you will need to retrain. That permissible duration till which you are ok to deal with less accuracy and bit slower performance before retraining, kind of becomes the actual __Test Data Duration/Horizon__ in the TTA scenario.
+
  
  Directory Structure
  -------------------
-As specified in step 4 of 'Pre-requisites' section, the working directory for this pipeline to execute all commands is the one that contains this README file. This directory is the root of the below directory tree denoted by `.` at the top of the tree. All paths shows below are relative to this directory.
+As specified in step 4 of 'Pre-requisites' section, the working directory for this pipeline to execute all commands is the one that contains this README file. 
+
+This directory is the root of the below directory tree denoted by `.` at the top of the tree. All paths shows below are relative to this directory.
  
 ```
 .
@@ -197,11 +245,6 @@ Details:
 
 Outcome is creation of a sub-directory, with the name of the experiment, in the `experiment_runs` directory. The `experiments_runs` directory will be created as a sub-directory of the directory specified as `experiment_run_dir`
 
-> CRITICAL note about `num_prediction_periods` setting in `03-default-experiment-configs.json`.
-
-> If we are not using TTA, then both Test data duration (step 2) and Prediction Duration (step 3 and 4) will be same duration. But since we are using Test Time Augmentation, our [Test Period/Horizon][5] (or Prediction Duration) in relation to an experiment (step 3 and 4) will be much less than the Test data duration (step 2).
-
-> The DAI experiment is configured to predict for Test Period/Horizon/Predict Duration. This is the length of time which can be scored at a single `score_batch` invocation on the scoring pipeline. Once that scoring is done, the data window is rolled ahead with a duration equal to the `roll duration` (step 4) and the new data (TTA) is augmented to the scoring data frame. At this point the scoring data has Training data for 1 roll duration followed by entries to predict for Prediction Duration. 
 
 
 Step 04. Create TTA scoring files.
