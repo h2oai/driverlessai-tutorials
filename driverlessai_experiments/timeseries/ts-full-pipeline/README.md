@@ -57,7 +57,7 @@ _Figure 1: DAI time-series experiment configuration without TTA or Rolling Windo
  
 To predict beyond that time period you need to either (1) retrain a new experiment on new data OR (2) use the Test Time Augmentation (TTA) technique to update the earlier model with new data at the time for scoring and then score on future data as needed.
  
-![Rolling Window and Test Time Augmentation](https://raw.githubusercontent.com/h2oai/driverlessai-tutorials/hk-ts-tta-pipeline/driverlessai_experiments/timeseries/ts-full-pipeline/images/TTA-RollWindow-duration.png) 
+![Rolling Window and Test Time Augmentation](https://raw.githubusercontent.com/h2oai/driverlessai-tutorials/master/driverlessai_experiments/timeseries/ts-full-pipeline/images/TTA-RollWindow-duration.png)
 
 ###### _Figure 2: DAI time-series experiment configuration with TTA and Rolling Window_
  
