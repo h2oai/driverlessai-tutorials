@@ -10,4 +10,5 @@ dependencies:
   - click
   - matplotlib
   - seaborn
+  - tqdm
   - h2oai_client=1.6.3
