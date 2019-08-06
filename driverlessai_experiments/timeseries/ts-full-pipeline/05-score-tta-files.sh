@@ -179,7 +179,7 @@ score_tta_files_using_api(){
     [[ -e "${process_script}" ]] || error_exit "Python script ${process_script} data not found"
     pushd "${scoring_data_dir}" > /dev/null &&
         source activate "${conda_env_name}" &&
-        (python  "${exp_run_dir}/scoring-pipeine/http_server.py --port=9090" > /dev/null 2>&1 &) &&
+        (python  "${script_dir}/${exp_run_dir}/scoring-pipeline/http_server.py" --port=9090 > /dev/null 2>&1 &) &&
         sleep 10 &&
         python "${script_dir}/${process_script}" -n "${experiment_name}" \
                                                  -t "${script_dir}/${experiment_data_dir}/test.pickle" \
