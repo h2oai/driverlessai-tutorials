@@ -62,7 +62,7 @@ def process(experiment_name,
     test_ds = pd.read_pickle(test_ds_file)
     if gap_ds_file is not None and os.path.exists(gap_ds_file):
         gap_ds = pd.read_pickle(gap_ds_file)
-        test_ds = pd.concat(gap_ds, test_ds)
+        test_ds = pd.concat([gap_ds, test_ds])
 
     # Create the output directory if it does not exists
     os.makedirs(f'predicted/{experiment_name}', exist_ok=True)
