@@ -213,6 +213,9 @@ Details:
 
 Outcome of this command is the creation of the requisite files in the output directory as specified in the above details. The output directory is itself created in `experiment_data` directory in the working directory.
 
+> Note - The `<test duration>` (in days) in the above command is the duration of Test Data Duration (Horizon) as depicted in Figure 2 above for the TTA based case. The Prediction Duration (PD) which differs from Test Data Duration in case of TTA is configured in the `num_prediction_periods` property of the experiment config JSON file.
+ [Refer link for details](https://github.com/h2oai/driverlessai-tutorials/blob/26b9e1a567261562478d85f122cabd083f61fc4c/driverlessai_experiments/timeseries/ts-full-pipeline/03-default-experiment-configs.json#L24)
+
 
 Step 03. Execute Experiment
 ---------------------------
@@ -242,6 +245,8 @@ Details:
   
   If the experiment completes successfully; python and mojo scoring pipelines are downloaded for the experiment. 
 ```
+
+> Refer to note in step 2 about how to configure Prediction Duration for an experiment, and how it links to Test Data Duration (specified in step 2) for a TTA use case.
 
 Outcome is creation of a sub-directory, with the name of the experiment, in the `experiment_runs` directory. The `experiments_runs` directory will be created as a sub-directory of the directory specified as `experiment_run_dir`
 
