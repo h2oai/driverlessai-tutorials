@@ -5,6 +5,7 @@ scratch.py
 .idea
 data_fullts
 experiment_data
+tmp
 
 # Exclude files based on extensions
 *.jar
