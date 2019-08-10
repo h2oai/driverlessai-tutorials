@@ -37,20 +37,33 @@ def process(preds_dir):
                         })
 
     # Next glob all api files
-    api_list = []
-    api_regex = re.compile(r'([0-9]{5})-api-m([0-9.]+).csv')
-    for a in glob.glob(f'{preds_dir}/*-api-*.csv'):
+    api_json_list = []
+    api_regex = re.compile(r'([0-9]{5})-api-json-m([0-9.]+).csv')
+    for a in glob.glob(f'{preds_dir}/*-api-json-*.csv'):
         file_name = os.path.basename(a)
         capture_group = api_regex.match(file_name)
-        api_list.append({
+        api_json_list.append({
             'order_id': capture_group.group(1),
-            'API': capture_group.group(2)
+            'API-JSON': capture_group.group(2)
         })
 
-    assert len(mod_list) == len(api_list), 'Unequal number of Module and API files. Exiting.'
+    # Next glob all api files
+    api_df_list = []
+    api_regex = re.compile(r'([0-9]{5})-api-df-m([0-9.]+).csv')
+    for a in glob.glob(f'{preds_dir}/*-api-df-*.csv'):
+        file_name = os.path.basename(a)
+        capture_group = api_regex.match(file_name)
+        api_df_list.append({
+            'order_id': capture_group.group(1),
+            'API-DF': capture_group.group(2)
+        })
+
+    assert len(mod_list) == len(api_json_list) == len(api_df_list), \
+        'Unequal files scored by Module, JSON API and DataFrame API.'
 
     mod_df = pd.DataFrame(mod_list)
-    api_df = pd.DataFrame(api_list)
+    api_json_df = pd.DataFrame(api_json_list)
+    api_df_df = pd.DataFrame(api_df_list)
 
     df: pd.DataFrame = pd.merge(mod_df, api_df, how='inner', on='order_id')
     df.sort_values(by='order_id',inplace=True)
