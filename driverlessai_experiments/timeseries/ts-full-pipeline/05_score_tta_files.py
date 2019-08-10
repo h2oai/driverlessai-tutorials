@@ -28,13 +28,13 @@ from tqdm import tqdm
                                                             readable=True),
               required=False,
               help='Gap dataset CSV file path.')
-@click.option('-a', '--api',
-              is_flag=True,
-              default=False)
+@click.option('--module', 'method', flag_value='module', default=True)
+@click.option('--api-json', 'method', flag_value='api-json', default=True)
+@click.option('--api-df', 'method', flag_value='api-df', default=True)
 def process(experiment_name,
             test_ds_file,
             gap_ds_file,
-            api):
+            method):
     """
     Score the TTA files in the 'score' directory, and create corresponding prediction files in the
     'predict/<experiment name> directory. Also calculate the metric (RMSE) to measure how good is the
@@ -43,7 +43,7 @@ def process(experiment_name,
     :param experiment_name: Name of the experiment run
     :param test_ds_file: Path of the test dataset file used for RMSE calculation
     :param gap_ds_file: Path of the gap dataset file used for RMSE calculation
-    :param api: Use python HTTP server on port 9090 for scoring instead of imported python scoring module
+    :param method: Score using imported module or use HTTP API using JSON (api-json) or DataFrame (api-df)
     :return: None
     """
     # Note the shell wrapper ensures this python file is executed in the TTA scoring data directory.
@@ -83,10 +83,12 @@ def process(experiment_name,
 
         # Load dataset to score and score it
         score_ds = pd.read_csv(file)
-        if api:
-            preds_ds = score_using_http_api(score_ds)
-        else:
+        if method == 'module':
             preds_ds = score_using_module(experiment_name, score_ds)
+        elif method == 'api-json':
+            preds_ds = score_using_http_api(score_ds)
+        elif method == 'api-df':
+            preds_ds = score_using_http_api2(score_ds)
 
         # Rename the predicted Sale column as Sale_hat and concat it to the original dataset
         preds_ds.columns = ['Sale_hat']
@@ -105,10 +107,12 @@ def process(experiment_name,
         df.dropna(inplace=True)
         rmse = ((df['predicted'] - df['actual']) ** 2).mean() ** 0.5
 
-        if api:
-            file_name = f'predicted/{experiment_name}/{file_order}-api-m{rmse}'
-        else:
+        if method == 'module':
             file_name = f'predicted/{experiment_name}/{file_order}-mod-m{rmse}'
+        elif method == 'api-json':
+            file_name = f'predicted/{experiment_name}/{file_order}-api-json-m{rmse}'
+        elif method == 'api-df':
+            file_name = f'predicted/{experiment_name}/{file_order}-api-df-m{rmse}'
 
         # Save the predictions
         save_datasets(preds_ds,

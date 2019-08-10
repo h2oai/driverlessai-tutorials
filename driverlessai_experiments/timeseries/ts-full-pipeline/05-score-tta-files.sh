@@ -20,18 +20,19 @@ error_exit(){
 
 print_usage(){
     echo "Usage:"
-    echo "  bash $0 -e <experiment run dir> -s <scoring data dir> [-p <python|mojo>] [-m <module|api>] [-h | --help]"
+    echo "  bash $0 -e <experiment run dir> -s <scoring data dir> [-p <python|mojo>] [-m <module|api|api2>] [-h | --help]"
     echo "Options:"
     echo "  -e <experiment run dir>     Experiment run directory containing scorer.zip. Will have same name as experiment in Driverless AI"
     echo "  -s <scoring data dir>       TTA scoring data directory created in step 04. Name will start with ${tta_dir_prefix}"
     echo "  -p <python|mojo>            Optional, defaults to python. Use Driverless AI Python or Mojo (Java) pipeline for scoring"
-    echo "  -m <module|api>             Optional, defaults to module. Score using python module in code or using HTTP API endpoint"
+    echo "  -m <module|api|api2>        Optional, defaults to module. Score using python module in code or using HTTP JSON or DataFrame API endpoint"
     echo "  -h, --help                  Display usage information."
     echo "Details:"
     echo "  Scores the files in scoring data directory using the scoring pipeline for selected experiment. Also creates the necessary"
     echo "  environments with dependencies for the scoring pipeline to work."
     echo "  Scoring files will be picked from the 'score' sub-directory of selected scoring data directory."
     echo "  Output files will be generated in the 'predicted' sub-directory of selected scoring data directory."
+    echo "  Scoring method 'api' sends the prediction dataframe as JSON to API server for batch scoring; 'api2' uses base64 encoded Pandas DataFrame"
 }
 
 parse_args_validate_then_exec(){
@@ -64,7 +65,7 @@ parse_args_validate_then_exec(){
             -m )
                 shift
                 use_method="$1"
-                [[ "${use_method}" =~ ^(module|api)$ ]] || { print_usage; error_exit "Incorrect method option. Only 'module' and 'api' are supported."; }
+                [[ "${use_method}" =~ ^(module|api|api2)$ ]] || { print_usage; error_exit "Incorrect method option. Only 'module' and 'api' are supported."; }
                 ;;
             -h | --help )
                 print_usage
@@ -136,6 +137,9 @@ parse_args_validate_then_exec(){
         api )
             score_tta_files_using_api
             ;;
+        api2 )
+            score_tta_files_using_api2
+            ;;
         * )
             print_usage
             error_exit "Incorrect method option, only 'module' and 'api' are supported"
@@ -168,7 +172,8 @@ score_tta_files_using_module(){
         source activate "${conda_env_name}" &&
         python "${script_dir}/${process_script}" -n "${experiment_name}" \
                                                  -t "${script_dir}/${experiment_data_dir}/test.pickle" \
-                                                 -g "${script_dir}/${experiment_data_dir}/gap.pickle" &&
+                                                 -g "${script_dir}/${experiment_data_dir}/gap.pickle" \
+                                                 --module &&
         conda deactivate &&
         rm -rf tmp &&
         popd > /dev/null
@@ -184,8 +189,25 @@ score_tta_files_using_api(){
         python "${script_dir}/${process_script}" -n "${experiment_name}" \
                                                  -t "${script_dir}/${experiment_data_dir}/test.pickle" \
                                                  -g "${script_dir}/${experiment_data_dir}/gap.pickle" \
-                                                 --api &&
+                                                 --api-json &&
         pkill -f http_server.py &&
+        conda deactivate &&
+        rm -rf tmp &&
+        popd > /dev/null
+}
+
+score_tta_files_using_api2(){
+    # if control reaches here, then conda environment is available
+    [[ -e "${process_script}" ]] || error_exit "Python script ${process_script} data not found"
+    pushd "${scoring_data_dir}" > /dev/null &&
+        source activate "${conda_env_name}" &&
+        (python  "${script_dir}/11_http_server2.py" -n ${experiment_name} -p 9090 > /dev/null 2>&1 &) &&
+        sleep 20 &&
+        python "${script_dir}/${process_script}" -n "${experiment_name}" \
+                                                 -t "${script_dir}/${experiment_data_dir}/test.pickle" \
+                                                 -g "${script_dir}/${experiment_data_dir}/gap.pickle" \
+                                                 --api-df &&
+        pkill -f 11_http_server2.py &&
         conda deactivate &&
         rm -rf tmp &&
         popd > /dev/null
