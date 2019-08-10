@@ -32,9 +32,9 @@ def process(preds_dir):
         file_name = os.path.basename(m)
         capture_group = mod_regex.match(file_name)
         mod_list.append({
-                            'order_id': capture_group.group(1),
-                            'Module': capture_group.group(2)
-                        })
+            'order_id': capture_group.group(1),
+            'Module': capture_group.group(2)
+        })
 
     # Next glob all api files
     api_json_list = []
@@ -65,15 +65,19 @@ def process(preds_dir):
     api_json_df = pd.DataFrame(api_json_list)
     api_df_df = pd.DataFrame(api_df_list)
 
-    df: pd.DataFrame = pd.merge(mod_df, api_df, how='inner', on='order_id')
-    df.sort_values(by='order_id',inplace=True)
+    # Merge all dataframes on a common column
+    mod_df.set_index('order_id', inplace=True)
+    api_json_df.set_index('order_id', inplace=True)
+    api_df_df.set_index('order_id', inplace=True)
+    df: pd.DataFrame = pd.concat([mod_df, api_json_df, api_df_df], axis=1, sort=False)
     df.reset_index(inplace=True)
-    df.drop(columns=['index'], inplace=True)
-    df['order_id'] = df['order_id'].astype(np.int16)
+    df.sort_values(by='index',inplace=True)
+    df['index'] = df['index'].astype(np.int16)
     df['Module'] = df['Module'].astype(np.float64)
-    df['API'] = df['API'].astype(np.float64)
+    df['API-JSON'] = df['API-JSON'].astype(np.float64)
+    df['API-DF'] = df['API-DF'].astype(np.float64)
     df = pd.melt(df,
-                 id_vars=['order_id'],
+                 id_vars=['index'],
                  var_name='Method',
                  value_name='RMSE')
 
@@ -81,15 +85,13 @@ def process(preds_dir):
     register_matplotlib_converters()
     sns.set_context('notebook')
 
-    sns.relplot(x='order_id',
+    sns.relplot(x='index',
                 y='RMSE',
                 hue='Method',
                 kind='line',
                 height=7,
                 aspect=2,
                 data=df).fig.savefig(f'{preds_dir}/metrics_plot.svg')
-
-
 
 
 if __name__ == '__main__':
