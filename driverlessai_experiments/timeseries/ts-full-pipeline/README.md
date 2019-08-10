@@ -213,7 +213,7 @@ Details:
 
 Outcome of this command is the creation of the requisite files in the output directory as specified in the above details. The output directory is itself created in `experiment_data` directory in the working directory.
 
-> Note - The `<test duration>` (in days) in the above command is the duration of Test Data Duration (Horizon) as depicted in Figure 2 above for the TTA based case. The Prediction Duration (PD) which differs from Test Data Duration in case of TTA is configured in the `num_prediction_periods` property of the experiment config JSON file.
+> **Note** - The `<test duration>` (in days) in the above command is the duration of Test Data Duration (Horizon) as depicted in Figure 2 above for the TTA based case. The Prediction Duration (PD) which differs from Test Data Duration in case of TTA is configured in the `num_prediction_periods` property of the experiment config JSON file.
  [Refer link for details](https://github.com/h2oai/driverlessai-tutorials/blob/26b9e1a567261562478d85f122cabd083f61fc4c/driverlessai_experiments/timeseries/ts-full-pipeline/03-default-experiment-configs.json#L24)
 
 
@@ -246,10 +246,9 @@ Details:
   If the experiment completes successfully; python and mojo scoring pipelines are downloaded for the experiment. 
 ```
 
-> Refer to note in step 2 about how to configure Prediction Duration for an experiment, and how it links to Test Data Duration (specified in step 2) for a TTA use case.
+> **Note** - Refer to note in step 2 about how to configure Prediction Duration for an experiment, and how it links to Test Data Duration (specified in step 2) for a TTA use case.
 
 Outcome is creation of a sub-directory, with the name of the experiment, in the `experiment_runs` directory. The `experiments_runs` directory will be created as a sub-directory of the directory specified as `experiment_run_dir`
-
 
 
 Step 04. Create TTA scoring files.
@@ -287,22 +286,33 @@ Deploys the scoring pipeline downloaded from the experiment conducted in Step 3 
 ```bash
 $ bash 05-score-tta-files.sh 
 
-Usage:
-  bash 05-score-tta-files.sh -e <experiment run dir> -s <scoring data dir> [-p <python|mojo>] [-m <module|api>] [-h | --help]
+ Usage:
+  bash 05-score-tta-files.sh -e <experiment run dir> -s <scoring data dir> [-p <python|mojo>] [-m <module|api|api2>] [-h | --help]
 Options:
   -e <experiment run dir>     Experiment run directory containing scorer.zip. Will have same name as experiment in Driverless AI
   -s <scoring data dir>       TTA scoring data directory created in step 04. Name will start with tta-scoring-data
   -p <python|mojo>            Optional, defaults to python. Use Driverless AI Python or Mojo (Java) pipeline for scoring
-  -m <module|api>             Optional, defaults to module. Score using python module in code or using HTTP API endpoint
+  -m <module|api|api2>        Optional, defaults to module. Score using python module in code or using HTTP JSON or DataFrame API endpoint
   -h, --help                  Display usage information.
 Details:
   Scores the files in scoring data directory using the scoring pipeline for selected experiment. Also creates the necessary
   environments with dependencies for the scoring pipeline to work.
   Scoring files will be picked from the 'score' sub-directory of selected scoring data directory.
   Output files will be generated in the 'predicted' sub-directory of selected scoring data directory.
+  Scoring method 'api' sends the prediction dataframe as JSON to API server for batch scoring; 'api2' uses base64 encoded Pandas DataFrame
 ```
 
 Outcome is creation of scored files in the `predicted` sub-directory as mentioned above.
+
+**WARNING** -  
+
+> The example HTTP scorer `http_server.py`, included in all python scoring pipelines generated from DAI, will not work for TTA based scoring. It assumes the target column will never be present in the scoring dataframe (refer code in the `score_batch` function). However, for TTA based time-series scoring to work, the new actual data (target) generated as time rolls by (rolling window), needs to be passed in the scoring data frame along with the data it need to predict. I have provided 2 solutions/workarounds.
+
+> I have provided a pandas dataframe based HTTP scoring server `11_http_server2.py` as an alternative. It accepts a payload of base64 encoded pandas Dateframe for scoring and returns a base64 encoded pandas dataframe with predictions as response.
+
+> Additionally, I have also provided a way to dynamically hack the http_server.py file to make it work, in case you want to deploy an API that accepts JSON (since not all clients can accept JSON.) The hack is in `05-score-tta-files.sh` in function `score_tta_files_using_api`
+
+> Additionally, I have provided a script `10_plot_score_metric.py` that compares the prediction outputs of all three methods and plots the prediction RMSE for all three approaches for the same fine to verify there is no deviance.
 
 
 
