@@ -1,12 +1,15 @@
 from starlette.applications import Starlette
 from starlette.responses import JSONResponse
 
-import click
 import base64
+import click
 import importlib
-import pickle
 import json
+import pandas
 import uvicorn
+
+from io import BytesIO
+
 
 # Create a global scorer and assign to None for now
 scorer = None
@@ -16,13 +19,17 @@ app = Starlette(debug=True)
 
 @app.route("/predict", methods=['POST'])
 async def predict(request):
-    request_content = await request.body()
-    request_content_json = json.loads(request_content)
-    score_ds = pickle.loads(base64.b64decode(request_content_json['payload']))
+    request_content_json = json.loads(await request.body())
+    buf = BytesIO(base64.b64decode(request_content_json['payload']))
+    buf.seek(0)
+    score_ds = pandas.read_pickle(buf, compression=None)
+    buf.close()
     if scorer is not None and type(score_ds).__name__ == 'DataFrame':
         pred_ds = scorer.score_batch(score_ds)
-        enc_preds = base64.b64encode(pickle.dumps(pred_ds)).decode()
-        return JSONResponse(content={'payload': enc_preds},
+        buf = BytesIO()
+        pred_ds.to_pickle(buf, compression=None)
+        buf.seek(0)
+        return JSONResponse(content={'payload': base64.b64encode(buf.getvalue()).decode()},
                             status_code=200)
     else:
         return JSONResponse(content={'payload': 'Error scorer could not load or request payload not pandas DataFrame'},

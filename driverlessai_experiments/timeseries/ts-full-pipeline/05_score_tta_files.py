@@ -1,3 +1,4 @@
+import base64
 import click
 import glob
 import importlib
@@ -10,6 +11,7 @@ import datetime as dt
 import pandas as pd
 
 from tqdm import tqdm
+from io import BytesIO
 
 
 @click.command()
@@ -158,6 +160,23 @@ def score_using_http_api(df: pd.DataFrame):
     results_list = r.json()['result']
     preds_list = [val for sub_list in results_list for val in sub_list]
     return pd.DataFrame(preds_list, columns=['Sale'])
+
+
+def score_using_http_api2(df: pd.DataFrame):
+    buf = BytesIO()
+    df.to_pickle(buf, compression=None)
+    buf.seek(0)
+    d = dict(id=1, method='score_batch', payload=base64.b64encode(buf.getvalue()).decode())
+    buf.close()
+    # Send the post to HTTP endpoint
+    post_headers = {'Content-Type': 'application/json'}
+    r = requests.post(url="http://localhost:9090/predict",
+                      data=json.dumps(d),
+                      headers=post_headers)
+    if r:
+        buf = BytesIO(base64.b64decode(r.json()['payload']))
+        buf.seek(0)
+        return pd.read_pickle(buf, compression=None)
 
 
 def get_dai_scorer(experiment_name: str):
