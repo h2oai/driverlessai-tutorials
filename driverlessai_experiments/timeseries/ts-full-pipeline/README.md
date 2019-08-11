@@ -253,7 +253,6 @@ Outcome is creation of a sub-directory, with the name of the experiment, in the 
 
 Step 04. Create TTA scoring files.
 ----------------------------------
-
 Generate scoring data files using the rolling window and Test Time Augmentation technique.
 
 ```bash
@@ -280,7 +279,6 @@ Outcome is the creation of scoring data in the output directory as specified abo
 
 Step 05. Score TTA files
 ------------------------
-
 Deploys the scoring pipeline downloaded from the experiment conducted in Step 3 in a conda environment and uses it for scoring the TTA files generated in step 4. One can use the python module or the HTTP api for scoring. 
 
 ```bash
@@ -313,6 +311,26 @@ Outcome is creation of scored files in the `predicted` sub-directory as mentione
 > Additionally, I have also provided a way to dynamically hack the http_server.py file to make it work, in case you want to deploy an API that accepts JSON (since not all clients can accept JSON.) The hack is in `05-score-tta-files.sh` in function `score_tta_files_using_api`
 
 > Additionally, I have provided a script `10_plot_score_metric.py` that compares the prediction outputs of all three methods and plots the prediction RMSE for all three approaches for the same fine to verify there is no deviance.
+
+
+Step 06. Checking performance of scoring methods
+------------------------------------------------
+Once you are done with scoring in Step 5, for an experiment and TTA scoring dataset using all the three methods (`module|api|api2`), then you can go ahead and compare their performance against each other to check if they all perform similarly or if there is a divergence in prediction based on the method you choose. Additionally , you can also get a trend of how the prediction accuracy changes as we move away from the time denoting the end of Training data during experiment training phase.
+
+> **Note** - Contrary to the above commands that are bash scripts this one uses python directly.
+
+ ```bash
+$ python 10_plot_score_metric.py 
+Usage: 10_plot_score_metric.py [OPTIONS]
+Try "10_plot_score_metric.py --help" for help.
+
+Error: Missing option "-p" / "--predictions-dir".
+```
+
+Using the script you can generate the plot in the prediction directory containing the predictions.
+
+
+
 
 
 
