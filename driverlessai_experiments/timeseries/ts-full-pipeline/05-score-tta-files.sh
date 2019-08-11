@@ -193,12 +193,12 @@ score_tta_files_using_api(){
     grep -q "pd.Series(\[r\['Sale'] if" "${script_dir}/${exp_run_dir}/scoring-pipeline/http_server.py" || {
         line_no=$(grep -n "pd.Series(\[r\['" "${script_dir}/${exp_run_dir}/scoring-pipeline/http_server.py" | tail -n 1 | cut -d ":" -f 1)
         inject_lino=$(expr ${line_no} + 1)
-        sed -i "${inject_lino}i\            pd.Series([r['Sale'] if r['Sale'] != None else None for r in rows], name='Sale', dtype='Int32')" "${script_dir}/${exp_run_dir}/scoring-pipeline/http_server.py"
+        sed -i "${inject_lino}i\            pd.Series([r['Sale'] if r['Sale'] != None else None for r in rows], name='Sale', dtype='float')" "${script_dir}/${exp_run_dir}/scoring-pipeline/http_server.py"
     }
 
     pushd "${scoring_data_dir}" > /dev/null &&
         source activate "${conda_env_name}" &&
-        (python  "${script_dir}/${exp_run_dir}/scoring-pipeline/http_server.py" --port=9090 &) &&
+        (python  "${script_dir}/${exp_run_dir}/scoring-pipeline/http_server.py" --port=9090 > /dev/null 2>&1 &) &&
         sleep 20 &&
         python "${script_dir}/${process_script}" -n "${experiment_name}" \
                                                  -t "${script_dir}/${experiment_data_dir}/test.pickle" \
