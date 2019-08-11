@@ -329,7 +329,7 @@ Error: Missing option "-p" / "--predictions-dir".
 
 Using the script you can generate the plot in the prediction directory containing the predictions. The plot would look as below. You see only one line here because all three scoring methods are giving you the exact same results. If the lines diverge then you would need to investigate further as to what is causing it.
 
-![RMSE plot based on various methods](https://raw.githubusercontent.com/h2oai/driverlessai-tutorials/master/driverlessai_experiments/timeseries/ts-full-pipeline/images/metrics_plot.svg)
+![RMSE plot based on various methods](https://raw.githubusercontent.com/h2oai/driverlessai-tutorials/master/driverlessai_experiments/timeseries/ts-full-pipeline/images/metrics_plot.png)
 
 
 
