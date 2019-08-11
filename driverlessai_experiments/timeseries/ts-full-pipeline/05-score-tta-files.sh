@@ -182,9 +182,23 @@ score_tta_files_using_module(){
 score_tta_files_using_api(){
     # if control reaches here, then conda environment is available
     [[ -e "${process_script}" ]] || error_exit "Python script ${process_script} data not found"
+
+    # Hack to get http_server working for TTA
+    # More info - Read Warning in
+    # https://github.com/h2oai/driverlessai-tutorials/tree/master/driverlessai_experiments/timeseries/ts-full-pipeline#step-05-score-tta-files
+    # We check if the line is already added in the file, if so we dont add it again.
+    # If not added already, then we find out the line # in the file where we add this line and then add it
+    # The idea will work for all use cases, but the code is specific to this data/experiment
+    # for your experiment, make corresponding changes
+    grep -q "pd.Series(\[r\['Sale'] if" "${script_dir}/${exp_run_dir}/scoring-pipeline/http_server.py" || {
+        line_no=$(grep -n "pd.Series(\[r\['" "${script_dir}/${exp_run_dir}/scoring-pipeline/http_server.py" | tail -n 1 | cut -d ":" -f 1)
+        inject_lino=$(expr ${line_no} + 1)
+        sed -i "${inject_lino}i\            pd.Series([r['Sale'] if r['Sale'] != None else None for r in rows], name='Sale', dtype='Int32')" "${script_dir}/${exp_run_dir}/scoring-pipeline/http_server.py"
+    }
+
     pushd "${scoring_data_dir}" > /dev/null &&
         source activate "${conda_env_name}" &&
-        (python  "${script_dir}/${exp_run_dir}/scoring-pipeline/http_server.py" --port=9090 > /dev/null 2>&1 &) &&
+        (python  "${script_dir}/${exp_run_dir}/scoring-pipeline/http_server.py" --port=9090 &) &&
         sleep 20 &&
         python "${script_dir}/${process_script}" -n "${experiment_name}" \
                                                  -t "${script_dir}/${experiment_data_dir}/test.pickle" \

@@ -157,6 +157,7 @@ def score_using_http_api(df: pd.DataFrame):
     r = requests.post(url="http://localhost:9090/rpc",
                       json=d,
                       headers=headers)
+    print(r.content)
     results_list = r.json()['result']
     preds_list = [val for sub_list in results_list for val in sub_list]
     return pd.DataFrame(preds_list, columns=['Sale'])
