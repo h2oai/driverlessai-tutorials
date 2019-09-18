@@ -20,7 +20,7 @@ Vagrant.configure("2") do |config|
   config.vm.provision "file", source: "payload/license.sig", destination: "/home/vagrant/.driverlessai/license.sig"
   
   # Shell - bootstraping 
-  # config.vm.provision "shell", path: "bootstrap.sh", name: "bootstrap", privileged: true
+  config.vm.provision "shell", path: "bootstrap.sh", name: "bootstrap", privileged: true
   # Shell - user install 
-  # config.vm.provision "shell", path: "payload.sh", name: "payload", privileged: false 
+  config.vm.provision "shell", path: "payload.sh", name: "payload", privileged: false 
 end
