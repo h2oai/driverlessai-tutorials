@@ -113,3 +113,4 @@ license.sig
 
 # VAgrant
 .vagrant
+.DS_Store
