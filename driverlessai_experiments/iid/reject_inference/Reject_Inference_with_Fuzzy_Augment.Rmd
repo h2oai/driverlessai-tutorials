@@ -1,0 +1,250 @@
+
+```{r}
+library(DiagrammeR)
+library(data.table)
+library(ggplot2)
+library(scales)
+library(ggthemes)
+library(R.utils)
+```
+
+# Reject Inference Workflow
+
+```{r}
+mermaid("
+graph TD 
+  
+  subgraph Reject Inference Datasets
+  AllApplicantsDS[\"All Loan Applicants\"] --> UnknownGoodBadDS[\"Rejected Applicants\"] 
+  AllApplicantsDS --> KnownGoodBadDS[\"Accepted Applicants\"]
+  KnownGoodBadDS -.- KnownGoodDS[\"Loans Paid Off (Good)\"]
+  KnownGoodBadDS -.- KnownBadDS[\"Charged Off (Bad)\"]
+  ScoredUnknownDS[\"Scored Rejected Applicants\"] --> UnknownDSLabeledGoodDS[\"Label and Weight Rejects as Good\"]
+  ScoredUnknownDS[\"Scored Rejected Applicants\"] --> UnknownDSLabeledBadDS[\"Label and Weight Rejects as Bad\"]
+  KnownGoodBadDS --> AllGoodBadWeightedDS[\"All Applicants for Reject Inference\"]
+  UnknownDSLabeledGoodDS --> AllGoodBadWeightedDS
+  UnknownDSLabeledBadDS --> AllGoodBadWeightedDS
+  FinalAllApplicatnsScoredDS[\"Rejected Applicants Scored on Final Model\"]
+  end
+  
+  subgraph Reject Inference
+  KnownGoodBadModel[\"Accepted Loans Model\"] --> Scoring[\"Scoring\"]
+  FinalRejectInferenceModel[\"Final Reject Inference Model\"] --> Scoring2[\"Scoring\"]
+  end
+  
+  UnknownGoodBadDS --> Scoring
+  KnownGoodBadDS --> KnownGoodBadModel
+  Scoring --> ScoredUnknownDS[\"Scored Rejected Applicants\"]
+  AllGoodBadWeightedDS --> FinalRejectInferenceModel
+  UnknownGoodBadDS --> Scoring2
+  Scoring2 --> FinalAllApplicatnsScoredDS
+")
+
+```
+
+# Loading Dataset
+
+Original dataset contains loans with either paid off or charged off status. A tiny fraction of loans doesn't have status and thus treated as rejected. Since its number is insufficient to similuate reject inference use case half of loans with status will be assigned to rejected (no status). At the end, two datasets will represent rejected and accepted loans: "KnownGoodBad.csv" and "UnknownGoodBad.csv".
+
+```{r createInitialDatasets}
+data_dir = "~/Projects/Playground/data/US_Small_Business_Admin_Loans/"
+
+# Source:
+# https://amstat.tandfonline.com/doi/full/10.1080/10691898.2018.1434342
+
+sba_national = fread(paste0(data_dir,"SBAnational.csv"))
+
+# separate data based on labels and randomness
+sba_national[MIS_Status!="", Target := MIS_Status=="CHGOFF"]
+table(sba_national$Target, useNA = "ifany")
+
+sba_national[, Reject_Status := MIS_Status==""]
+table(sba_national$Reject_Status, useNA = "ifany")
+
+sba_national[Target==TRUE, Reject_Status := 
+               sample(c(TRUE, FALSE), nrow(sba_national[Target==TRUE,]), replace = TRUE, prob = c(.5,.5))]
+sba_national[Target==FALSE, Reject_Status := 
+               sample(c(TRUE, FALSE), nrow(sba_national[Target==FALSE,]), replace = TRUE, prob = c(.5,.5))]
+table(sba_national$Reject_Status, useNA = "ifany")
+
+# make loan number character-based
+sba_national[ , LoanNr_ChkDgt := paste0('#', as.character(LoanNr_ChkDgt))]
+# parse money amounts to numeric
+cols = c("DisbursementGross", "BalanceGross", "ChgOffPrinGr", "GrAppv", "SBA_Appv")
+sba_national[ , (cols) := lapply(.SD, FUN = function(x){
+  as.numeric(gsub(",", "", substring(x, 2)))
+}), .SDcols = cols]
+
+unknownGoodBad = sba_national[Reject_Status==TRUE]
+knownGoodBad = sba_national[Reject_Status==FALSE]
+
+fwrite(unknownGoodBad, file = paste0(data_dir, "UnknownGoodBad.csv"))
+gzip(paste0(data_dir,'UnknownGoodBad.csv'), destname=paste0(data_dir,'UnknownGoodBad.csv.gz'), 
+     remove=FALSE, overwrite=TRUE)
+fwrite(knownGoodBad, file = paste0(data_dir, "KnownGoodBad.csv"))
+gzip(paste0(data_dir,'KnownGoodBad.csv'), destname=paste0(data_dir,'KnownGoodBad.csv.gz'), 
+     remove=FALSE, overwrite=TRUE)
+```
+
+# Connect to Driverless AI
+
+```{r connectDAI, include=FALSE}
+library(dai)
+
+dai_uri = "http://ec2-18-234-243-32.compute-1.amazonaws.com:12345"
+usr = "h2oai"
+pwd = "i-0d75fd9c130db1887"
+dai.connect(uri = dai_uri, username = usr, password = pwd, force_version = FALSE)
+```
+
+```{r connectDAIvisible, eval=FALSE, include=TRUE}
+dai_uri = "http://mydai.instance.com:12345"
+usr = "mydaiuser"
+pwd = "mydaipassword"
+dai.connect(uri = dai_uri, username = usr, password = pwd, force_version = FALSE)
+```
+
+# Import data into Driverless AI
+
+Import datasets for both accepted and rejected loans, then split accepted loans into training and test partitions to train 1st loan default model.
+
+```{r findOrCreateDatasets}
+existing_datasets = data.table(dai.list_datasets(limit = 1000))
+if(nrow(existing_datasets) > 0 &&
+   nrow(existing_datasets[name=='KnownGoodBad.csv.gz']) == 1) {
+  known_key = existing_datasets[name=='KnownGoodBad.csv.gz','key'][[1,1]]
+  known_data = dai.get_frame(known_key)
+}else {
+  known_data = dai.upload_dataset(paste0(data_dir, "KnownGoodBad.csv.gz"))
+}
+
+if(nrow(existing_datasets) > 0 &&
+   nrow(existing_datasets[name=="KnownGoodBad_train"]) == 1 &&
+   nrow(existing_datasets[name=="KnownGoodBad_test"]) == 1) {
+  known_train_key = existing_datasets[name=="KnownGoodBad_train",'key'][[1,1]]
+  known_train_set = dai.get_frame(known_train_key)
+  known_test_key = existing_datasets[name=="KnownGoodBad_test",'key'][[1,1]]
+  known_test_set = dai.get_frame(known_test_key)
+}else {
+  partitions = dai.split_dataset(dataset = known_data, 
+                  output_name1 = "KnownGoodBad_train", output_name2 = "KnownGoodBad_test",
+                  ratio = 0.8, seed = 75252, target = "Target")
+  known_train_set = partitions[[1]]
+  known_test_set = partitions[[2]]
+}
+```
+
+# Train Primary Default Model
+
+Build classification model for loan defaults.
+
+```{r buildKnownModel}
+existing_models = data.table(dai.list_models(offset = 0, limit = 1000)[,c("key","description")])
+if(nrow(existing_models) > 0 && 
+   nrow(existing_models[description=="known-goodbad-445"]) == 1) {
+  known_model_key = existing_models[description=="known-goodbad-445","key"][[1,1]]
+  known_model = dai.get_model(known_model_key)
+}else {
+  params = dai.suggest_model_params(training_frame = known_train_set, target_col = "Target", 
+                                  is_classification = TRUE, is_timeseries = FALSE)
+  known_model = dai.train(training_frame = known_train_set, testing_frame = known_test_set, 
+                       target_col = "Target", is_classification = TRUE, is_timeseries = FALSE,
+                       cols_to_drop = c("MIS_Status","ChgOffPrinGr","ChgOffDate","LoanNr_ChkDgt"),
+                       time = 4, accuracy = 4, interpretability = 5,
+                       # experiment_name = "known-goodbad-445",
+                       enable_gpus = TRUE, seed = 75252,
+                       config_overrides = "make_python_scoring_pipeline = 'off'")
+}
+```
+
+# Scoring Rejected Loans
+
+Imported rejected loan dataset and score on primary default loan model.
+```{r importAndScoreRejects}
+if(nrow(existing_datasets) > 0 && 
+   nrow(existing_datasets[name=='UnknownGoodBad.csv.gz']) == 1) {
+  unknown_key = existing_datasets[name=='UnknownGoodBad.csv.gz','key'][[1,1]]
+  unknown_data = dai.get_frame(known_key)
+}else {
+  unknown_data = dai.upload_dataset(paste0(data_dir, "UnknownGoodBad.csv.gz"))
+}
+
+unknown_scored = predict(known_model, newdata = unknown_data, 
+                         include_columns = "LoanNr_ChkDgt", return_df = TRUE)
+```
+
+Manufacture new weighted dataset for Reject Inference with Fuzzy Augmentation
+
+```{r}
+unknownScored = data.frame(unknown_scored)
+N = nrow(sba_national) # total number of rejected and accepted loans
+
+unknownGoodOnly = data.table(unknownGoodBad)
+unknownGoodOnly[unknownScored, c("Target", "weight", "weight_btb") := 
+                  list(FALSE, as.double(`Target.0`), as.double(`Target.0`)/N), on='LoanNr_ChkDgt']
+
+unknownBadOnly = data.table(unknownGoodBad)
+unknownBadOnly[unknownScored, c("Target", "weight", "weight_btb") := 
+                  list(TRUE, as.double(`Target.1`), as.double(`Target.1`)/N), on='LoanNr_ChkDgt']
+
+allGoodBad = rbindlist(list(knownGoodBad[, c("weight", "weight_btb") := list(1, 1/N)],
+               unknownGoodOnly,
+               unknownBadOnly))
+
+fwrite(allGoodBad, file = paste0(data_dir, "AllGoodBad.csv"))
+gzip(paste0(data_dir,'AllGoodBad.csv'), destname=paste0(data_dir,'AllGoodBad.csv.gz'), 
+     remove=FALSE, overwrite=TRUE)
+
+fwrite(allGoodBad[, -c("weight","weight_btb")], file = paste0(data_dir, "AllGoodBad_noweight.csv"))
+gzip(paste0(data_dir,'AllGoodBad_noweight.csv'), destname=paste0(data_dir,'AllGoodBad_noweight.csv.gz'), 
+     remove=FALSE, overwrite=TRUE)
+
+all_data = dai.upload_dataset(paste0(data_dir, "AllGoodBad.csv.gz"))
+all_data_noweight = dai.upload_dataset(paste0(data_dir, "AllGoodBad_noweight.csv.gz"))
+```
+
+
+```{r buildAllGoodBadModel}
+if(nrow(existing_datasets) > 0 &&
+   nrow(existing_datasets[name=='AllGoodBad_train']) >= 1 &&
+   nrow(existing_datasets[name=='AllGoodBad_test']) >= 1) {
+  alltrain_set_key = existing_datasets[name=='AllGoodBad_train','key'][[1,1]]
+  alltrain_set = dai.get_frame(alltrain_set_key)
+  alltest_set_key = existing_datasets[name=='AllGoodBad_test','key'][[1,1]]
+  alltest_set = dai.get_frame(alltest_set_key)
+}else {
+  partitions = dai.split_dataset(dataset = all_data, 
+                  output_name1 = "AllGoodBad_train", output_name2 = "AllGoodBad_test",
+                  ratio = 0.8, seed = 75252, target = "Target")
+  alltrain_set = partitions[[1]]
+  alltest_set = partitions[[2]]
+}
+
+all_model = dai.train(training_frame = alltrain_set, testing_frame = alltest_set, 
+                       target_col = "Target", weight_col = "weight",
+                       is_classification = TRUE, is_timeseries = FALSE,
+                       cols_to_drop = c("MIS_Status","ChgOffPrinGr","ChgOffDate","LoanNr_ChkDgt",
+                                        "weight_btb"),
+                       time = 4, accuracy = 4, interpretability = 5,
+                       # experiment_name = "all-goodbad-445",
+                       enable_gpus = TRUE, seed = 75252,
+                       config_overrides = "make_python_scoring_pipeline = 'off'")
+
+all_model_btb = dai.train(training_frame = alltrain_set, testing_frame = alltest_set, 
+                       target_col = "Target", weight_col = "weight_btb",
+                       is_classification = TRUE, is_timeseries = FALSE,
+                       cols_to_drop = c("MIS_Status","ChgOffPrinGr","ChgOffDate","LoanNr_ChkDgt",
+                                        "weight"),
+                       time = 4, accuracy = 4, interpretability = 5,
+                       # experiment_name = "all-goodbad-bhb-445",
+                       enable_gpus = TRUE, seed = 75252,
+                       config_overrides = "make_python_scoring_pipeline = 'off'")
+```
+
+# Make Final Model Predictions on Rejected Loans
+
+```{r predictRejectsOnFinalModel}
+unknown_on_final_scored = predict(all_model, newdata = unknown_data, 
+                         include_columns = "LoanNr_ChkDgt", return_df = TRUE)
+```
+
