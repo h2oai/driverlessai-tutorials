@@ -1,18 +1,15 @@
-FROM ubuntu:bionic
+FROM centos:centos7
 
-# These commands run as root 
+# These commands run as root
 # Install base dependencies
-RUN apt-get update && \ 
-    apt install -y \
-        build-essential \
-        libmagic-dev \ 
-        libopenblas-dev \
-        git \
-        locales \
-        unzip \
-        wget
+RUN yum -y update && \
+    yum install -y epel-release && \
+    yum -y groupinstall 'Development Tools' && \
+    yum install -y openblas-devel openblas python36-virtualenv python36-pip wget unzip java && \
+    ln -s /usr/bin/virtualenv-3.6 /usr/bin/virtualenv && \
+    ln -s /usr/bin/pip-3.6 /usr/bin/pip && \
+    ln -sf /usr/bin/python3 /usr/bin/python
 
-RUN locale-gen en_US.UTF-8
 ENV LANG en_US.UTF-8
 ENV LANGUAGE en_US:en
 ENV LC_ALL en_US.UTF-8
@@ -26,16 +23,11 @@ USER newuser
 WORKDIR /home/newuser
 
 # Commands below run as newuser
-COPY --chown=newuser:newuser payload/scorer.zip ./ 
+COPY --chown=newuser:newuser payload/scorer.zip ./
 COPY --chown=newuser:newuser payload/license.sig .driverlessai/
 
-# install Miniconda
-RUN wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh && \
-    bash miniconda.sh -b -p $HOME/miniconda3 && \
-    echo 'export PATH=$HOME/miniconda3/bin:$PATH' >> .bashrc && \
-    unzip scorer.zip 
+RUN unzip scorer.zip
 
 WORKDIR scoring-pipeline
 
-RUN export PATH="$HOME/miniconda3/bin:$PATH" && \
-    bash run_example.sh --pm conda
+RUN bash run_example.sh
