@@ -39,7 +39,7 @@ Instructions
 6. Issue the command `docker build -t scoretest .`. This will
     - Create a CentOS 7 based docker container 
     - Install required dependencies, python etc..
-    - Create a Conda environment for the scoring pipeline by installing all needed dependencies
+    - Create a virtual environment for the scoring pipeline by installing all needed dependencies
     - Run `example.py` from the scoring pipeline
 
 As part of the build process you will see the scores being produced for the test data in `example.py`. This example
@@ -52,9 +52,8 @@ Execute the command `docker run -it --rm scoretest:latest`. Once connected you w
 To run `example.py` you can follow the below steps once you are connected using SSH
 
 ```
-conda env list                            # shows conda environments available on the system
-source activate environment_name          # activate environment for required experiment (experiment key is in name)
-python example.py                         # to run example.py manually
+. env/bin/activate # activate environment for required experiment
+python example.py  # to run example.py manually
 ```
 
 Similarly, you can run the HTTP and TCP server python files too.
