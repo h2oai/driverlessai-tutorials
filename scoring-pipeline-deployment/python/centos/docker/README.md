@@ -37,9 +37,9 @@ Instructions
 4. Copy the scoring pipeline `scorer.zip` in the `payload` directory. You may need to create the `payload` directory.
 5. Copy Driverless AI license `license.sig` in the `payload` directory
 6. Issue the command `docker build -t scoretest .`. This will
-    - Create a Ubuntu 18.04 based docker container 
-    - Install required dependencies, miniconda, python etc..
-    - Create a conda environment for the scoring pipeline by installing all needed dependencies
+    - Create a CentOS 7 based docker container 
+    - Install required dependencies, python etc..
+    - Create a Conda environment for the scoring pipeline by installing all needed dependencies
     - Run `example.py` from the scoring pipeline
 
 As part of the build process you will see the scores being produced for the test data in `example.py`. This example
