@@ -1,3 +1,8 @@
+---
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
 
 ```{r}
 library(DiagrammeR)
@@ -12,32 +17,43 @@ library(R.utils)
 
 ```{r}
 mermaid("
-graph TD 
-  
-  subgraph Reject Inference Datasets
-  AllApplicantsDS[\"All Loan Applicants\"] --> UnknownGoodBadDS[\"Rejected Applicants\"] 
-  AllApplicantsDS --> KnownGoodBadDS[\"Accepted Applicants\"]
-  KnownGoodBadDS -.- KnownGoodDS[\"Loans Paid Off (Good)\"]
-  KnownGoodBadDS -.- KnownBadDS[\"Charged Off (Bad)\"]
-  ScoredUnknownDS[\"Scored Rejected Applicants\"] --> UnknownDSLabeledGoodDS[\"Label and Weight Rejects as Good\"]
-  ScoredUnknownDS[\"Scored Rejected Applicants\"] --> UnknownDSLabeledBadDS[\"Label and Weight Rejects as Bad\"]
-  KnownGoodBadDS --> AllGoodBadWeightedDS[\"All Applicants for Reject Inference\"]
-  UnknownDSLabeledGoodDS --> AllGoodBadWeightedDS
-  UnknownDSLabeledBadDS --> AllGoodBadWeightedDS
-  FinalAllApplicatnsScoredDS[\"Rejected Applicants Scored on Final Model\"]
+graph TB 
+
+  subgraph Application Data
+    AllApplicantsDS[\"All Applicants\"] --> UnknownGoodBadDS[\"Rejects\"] 
+    AllApplicantsDS --> KnownGoodBadDS[\"Accepts\"]
+    KnownGoodBadDS -.- KnownGoodDS[\"Loans Paid Off (Good)\"]
+    KnownGoodBadDS -.- KnownBadDS[\"Charged Off (Bad)\"]
   end
   
-  subgraph Reject Inference
-  KnownGoodBadModel[\"Accepted Loans Model\"] --> Scoring[\"Scoring\"]
-  FinalRejectInferenceModel[\"Final Reject Inference Model\"] --> Scoring2[\"Scoring\"]
+  subgraph Accepted Applicants Model
+    Training1((\"Training\")) --> KnownGoodBadModel(-\"Accepted Loans Model\"-)
+    KnownGoodBadModel --> Scoring1((\"Scoring\"))
   end
   
-  UnknownGoodBadDS --> Scoring
-  KnownGoodBadDS --> KnownGoodBadModel
-  Scoring --> ScoredUnknownDS[\"Scored Rejected Applicants\"]
-  AllGoodBadWeightedDS --> FinalRejectInferenceModel
-  UnknownGoodBadDS --> Scoring2
-  Scoring2 --> FinalAllApplicatnsScoredDS
+  subgraph Fuzzy Augmentation
+    ScoredUnknownDS[\"Rejects Scored\"] --> UnknownDSLabeledGoodDS[\"Label and Weight as Good\"]
+    ScoredUnknownDS --> UnknownDSLabeledBadDS[\"Label and Weight as Bad\"]
+    AllGoodBadWeightedDS[\"Accepted Applicants plus Weighted Rejects\"]
+    UnknownDSLabeledGoodDS --> AllGoodBadWeightedDS
+    UnknownDSLabeledBadDS --> AllGoodBadWeightedDS
+  end 
+  
+  FinalAllApplicantsScoredDS[\"All Scored on Augmented Model\"]
+  
+  subgraph Augmented Model
+    Training2((\"Training\")) --> FinalRejectInferenceModel(-\"Final Reject Inference Model\"-)
+    FinalRejectInferenceModel --> Scoring2((\"Scoring\"))
+  end
+
+  KnownGoodBadDS --> Training1
+  UnknownGoodBadDS --> Scoring1
+  Scoring1 --> ScoredUnknownDS
+  KnownGoodBadDS --> AllGoodBadWeightedDS
+  AllGoodBadWeightedDS --> Training2
+  AllApplicantsDS --> Scoring2
+  Scoring2 --> FinalAllApplicantsScoredDS
+  
 ")
 
 ```
@@ -47,6 +63,7 @@ graph TD
 Original dataset contains loans with either paid off or charged off status. A tiny fraction of loans doesn't have status and thus treated as rejected. Since its number is insufficient to similuate reject inference use case half of loans with status will be assigned to rejected (no status). At the end, two datasets will represent rejected and accepted loans: "KnownGoodBad.csv" and "UnknownGoodBad.csv".
 
 ```{r createInitialDatasets}
+# make changes to where your file located
 data_dir = "~/Projects/Playground/data/US_Small_Business_Admin_Loans/"
 
 # Source:
@@ -91,9 +108,9 @@ gzip(paste0(data_dir,'KnownGoodBad.csv'), destname=paste0(data_dir,'KnownGoodBad
 ```{r connectDAI, include=FALSE}
 library(dai)
 
-dai_uri = "http://ec2-18-234-243-32.compute-1.amazonaws.com:12345"
+dai_uri = ""
 usr = "h2oai"
-pwd = "i-0d75fd9c130db1887"
+pwd = ""
 dai.connect(uri = dai_uri, username = usr, password = pwd, force_version = FALSE)
 ```
 
@@ -145,17 +162,28 @@ if(nrow(existing_models) > 0 &&
   known_model_key = existing_models[description=="known-goodbad-445","key"][[1,1]]
   known_model = dai.get_model(known_model_key)
 }else {
-  params = dai.suggest_model_params(training_frame = known_train_set, target_col = "Target", 
-                                  is_classification = TRUE, is_timeseries = FALSE)
   known_model = dai.train(training_frame = known_train_set, testing_frame = known_test_set, 
                        target_col = "Target", is_classification = TRUE, is_timeseries = FALSE,
                        cols_to_drop = c("MIS_Status","ChgOffPrinGr","ChgOffDate","LoanNr_ChkDgt"),
                        time = 4, accuracy = 4, interpretability = 5,
-                       # experiment_name = "known-goodbad-445",
+                       experiment_name = "known-goodbad-445",
                        enable_gpus = TRUE, seed = 75252,
                        config_overrides = "make_python_scoring_pipeline = 'off'")
 }
 ```
+
+# Scoring Test Set and Visualizing 
+```{r}
+known_model_key = existing_models[description=="2.known_goodbad_glm","key"][[1,1]]
+known_model_glm = dai.get_model(known_model_key)
+test_scored = predict(known_model_glm, newdata = known_test_set, 
+                      include_columns = c("LoanNr_ChkDgt","Target"), return_df = TRUE)
+ggplot(test_scored) +
+  # geom_histogram(aes(Target.1, fill=factor(Target)), alpha=0.7, bins = 100, position = "dodge") +
+  geom_density(aes(LoanNr_ChkDgt, Target.1, color=factor(Target)), alpha=0.7) +
+  theme_tufte(base_size = 12, base_family = 'Palatino', ticks = FALSE)
+```
+
 
 # Scoring Rejected Loans
 
@@ -226,7 +254,7 @@ all_model = dai.train(training_frame = alltrain_set, testing_frame = alltest_set
                        cols_to_drop = c("MIS_Status","ChgOffPrinGr","ChgOffDate","LoanNr_ChkDgt",
                                         "weight_btb"),
                        time = 4, accuracy = 4, interpretability = 5,
-                       # experiment_name = "all-goodbad-445",
+                       experiment_name = "all-goodbad-445",
                        enable_gpus = TRUE, seed = 75252,
                        config_overrides = "make_python_scoring_pipeline = 'off'")
 
@@ -236,7 +264,7 @@ all_model_btb = dai.train(training_frame = alltrain_set, testing_frame = alltest
                        cols_to_drop = c("MIS_Status","ChgOffPrinGr","ChgOffDate","LoanNr_ChkDgt",
                                         "weight"),
                        time = 4, accuracy = 4, interpretability = 5,
-                       # experiment_name = "all-goodbad-bhb-445",
+                       experiment_name = "all-goodbad-btb-445",
                        enable_gpus = TRUE, seed = 75252,
                        config_overrides = "make_python_scoring_pipeline = 'off'")
 ```
@@ -244,7 +272,38 @@ all_model_btb = dai.train(training_frame = alltrain_set, testing_frame = alltest
 # Make Final Model Predictions on Rejected Loans
 
 ```{r predictRejectsOnFinalModel}
-unknown_on_final_scored = predict(all_model, newdata = unknown_data, 
-                         include_columns = "LoanNr_ChkDgt", return_df = TRUE)
+existing_datasets = data.table(dai.list_datasets(limit = 1000))
+test_data_key = existing_datasets[name=='KnownGoodBad_test','key'][[1,1]]
+test_data = dai.get_frame(test_data_key)
+
+existing_models = data.table(dai.list_models(offset = 0, limit = 1000)[,c("key","description")])
+all_good_bad_model_key = existing_models[description=="known-goodbad-445","key"][[1,1]]
+all_good_bad_model = dai.get_model(all_good_bad_model_key)
+
+alltest_final_scored = predict(all_good_bad_model, newdata = test_data, 
+                         include_columns = c("LoanNr_ChkDgt","Target","UrbanRural"), return_df = TRUE)
+alltest_final_scored$Target = factor(alltest_final_scored$Target)
+alltest_final_scored$UrbanRural = factor(alltest_final_scored$UrbanRural)
+
+ggplot(alltest_final_scored, aes(x=Target.1, fill=Target)) +
+  geom_histogram(bins=50, position="stack", color="black") +
+  theme_tufte(ticks=TRUE) + geom_rangeframe() + 
+  theme(legend.position = "bottom")
+
+ggplot(alltest_final_scored, aes(x=Target.1)) +
+  geom_density(alpha = .7, trim=TRUE) +
+  theme_tufte() + geom_rangeframe() + # geom_rug() +
+  theme(legend.position = "bottom")
+
+ggplot(alltest_final_scored, aes(x=Target.1, fill=Target)) +
+  geom_histogram(bins=50, position="dodge", color="black") +
+  theme_tufte(ticks=TRUE) + geom_rangeframe() + 
+  theme(legend.position = "bottom")
+
+ggplot(alltest_final_scored, aes(x=Target.1, fill=Target)) +
+  geom_density(alpha = .7, trim=TRUE) +
+  # facet_wrap(~UrbanRural, ncol=1, scales = "free_y") +
+  theme_tufte(ticks=TRUE) + geom_rangeframe() + 
+  theme(legend.position = "bottom")
 ```
 
