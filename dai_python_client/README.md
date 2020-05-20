@@ -37,8 +37,6 @@ Please send feedback to help improve the client and documentation to support@h2o
 
 Get access to the .whl file by sending a note to `support.h2o.ai` requesting to be a beta tester.
 
-    pip install driverlessai-1.8.4.1b0-py3-none-any.whl
-
 ### Documentation
 
 Available with the .zip that can be obtained by contacting `support.h2o.ai` to become a beta tester
