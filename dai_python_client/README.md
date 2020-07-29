@@ -2,7 +2,7 @@
 
 The intuitive, static Python client for Drivierless AI became beta in March 2020. This package, `driverlessai` will be a replacement for the backend client, `h2oai_client`. This repository contains example usage notebooks to help get you started. 
 
-_If you would like to be a beta tester or have feedback please reachout to `support.h2o.ai`._
+_If you would like to be a beta tester or have feedback please reachout to `support@h2o.ai`._
 
 ## Available Examples 
 
@@ -35,8 +35,8 @@ Please send feedback to help improve the client and documentation to support@h2o
 
 ### Install
 
-Get access to the .whl file by sending a note to `support.h2o.ai` requesting to be a beta tester.
+Get access to the .whl file by sending a note to `support@h2o.ai` requesting to be a beta tester.
 
 ### Documentation
 
-Available with the .zip that can be obtained by contacting `support.h2o.ai` to become a beta tester
+Available with the .zip that can be obtained by contacting `support@h2o.ai` to become a beta tester
