@@ -1,0 +1,164 @@
+digraph {
+  graph[ranksep="2"]
+  rankdir="LR";
+  labelloc="t";
+  label="0_LightGBMModel_2";
+    subgraph cluster_feature {
+        label="Features";
+        node_0 [shape=box, label="AGE"];
+        node_1 [shape=box, label="BILL_AMT1"];
+        node_2 [shape=box, label="BILL_AMT2"];
+        node_3 [shape=box, label="BILL_AMT3"];
+        node_4 [shape=box, label="BILL_AMT4"];
+        node_5 [shape=box, label="BILL_AMT5"];
+        node_6 [shape=box, label="BILL_AMT6"];
+        node_7 [shape=box, label="EDUCATION"];
+        node_8 [shape=box, label="LIMIT_BAL"];
+        node_9 [shape=box, label="MARRIAGE"];
+        node_10 [shape=box, label="PAY_0"];
+        node_11 [shape=box, label="PAY_2"];
+        node_12 [shape=box, label="PAY_3"];
+        node_13 [shape=box, label="PAY_4"];
+        node_14 [shape=box, label="PAY_5"];
+        node_15 [shape=box, label="PAY_6"];
+        node_16 [shape=box, label="PAY_AMT1"];
+        node_17 [shape=box, label="PAY_AMT2"];
+        node_18 [shape=box, label="PAY_AMT3"];
+        node_19 [shape=box, label="PAY_AMT4"];
+        node_20 [shape=box, label="PAY_AMT5"];
+        node_21 [shape=box, label="PAY_AMT6"];
+        node_22 [shape=box, label="SEX"];
+    }
+    node_24 [shape=box, label="ClusterIdTransformer
+< 1 KB"];
+    node_25 [shape=box, label="CVTargetEncodeTransformer
+< 1 KB"];
+    node_26 [shape=box, label="NumToCatWoETransformer
+< 1 KB"];
+    node_27 [shape=box, label="WeightOfEvidenceTransformer
+< 1 KB"];
+    node_28 [shape=box, label="NumToCatWoETransformer
+< 1 KB"];
+    node_29 [shape=box, label="WeightOfEvidenceTransformer
+44 KB"];
+    node_30 [shape=box, label="ClusterIdTransformer
+< 1 KB"];
+    node_31 [shape=box, label="CVTargetEncodeTransformer
+< 1 KB"];
+    node_32 [shape=box, label="ClusterIdTransformer
+< 1 KB"];
+    node_33 [shape=box, label="CVTargetEncodeTransformer
+< 1 KB"];
+    node_34 [shape=box, label="NumToCatTETransformer
+< 1 KB"];
+    node_35 [shape=box, label="CVTargetEncodeTransformer
+21 KB"];
+    node_36 [shape=box, label="NumToCatTETransformer
+1 KB"];
+    node_37 [shape=box, label="CVTargetEncodeTransformer
+134 KB"];
+    node_38 [shape=box, label="NumToCatTETransformer
+< 1 KB"];
+    node_39 [shape=box, label="CVTargetEncodeTransformer
+36 KB"];
+    node_40 [shape=box, label="NumToCatTETransformer
+1 KB"];
+    node_41 [shape=box, label="CVTargetEncodeTransformer
+1 KB"];
+    node_42 [shape=box, label="CVTargetEncodeTransformer
+< 1 KB"];
+    node_43 [shape=box, label="NumToCatTETransformer
+3 KB"];
+    node_44 [shape=box, label="CVTargetEncodeTransformer
+3 KB"];
+    node_45 [shape=box, label="NumToCatTETransformer
+< 1 KB"];
+    node_46 [shape=box, label="CVTargetEncodeTransformer
+< 1 KB"];
+    node_47 [shape=box, label="NumToCatTETransformer
+< 1 KB"];
+    node_48 [shape=box, label="CVTargetEncodeTransformer
+< 1 KB"];
+    node_49 [shape=box, label="LightGBMModel
+263 KB"];
+    node_1 -> node_24;
+    node_24 -> node_25;
+    node_18 -> node_26;
+    node_26 -> node_27;
+    node_14 -> node_28;
+    node_7 -> node_28;
+    node_16 -> node_28;
+    node_0 -> node_28;
+    node_28 -> node_29;
+    node_22 -> node_30;
+    node_30 -> node_31;
+    node_3 -> node_32;
+    node_13 -> node_32;
+    node_21 -> node_32;
+    node_32 -> node_33;
+    node_5 -> node_34;
+    node_1 -> node_34;
+    node_21 -> node_34;
+    node_22 -> node_34;
+    node_13 -> node_34;
+    node_34 -> node_35;
+    node_20 -> node_36;
+    node_1 -> node_36;
+    node_21 -> node_36;
+    node_11 -> node_36;
+    node_16 -> node_36;
+    node_8 -> node_36;
+    node_36 -> node_37;
+    node_4 -> node_38;
+    node_5 -> node_38;
+    node_8 -> node_38;
+    node_1 -> node_38;
+    node_38 -> node_39;
+    node_4 -> node_40;
+    node_40 -> node_41;
+    node_0 -> node_42;
+    node_6 -> node_43;
+    node_43 -> node_44;
+    node_8 -> node_45;
+    node_45 -> node_46;
+    node_9 -> node_47;
+    node_47 -> node_48;
+    node_7 -> node_49;
+    node_18 -> node_49;
+    node_1 -> node_49;
+    node_9 -> node_49;
+    node_4 -> node_49;
+    node_0 -> node_49;
+    node_48 -> node_49;
+    node_46 -> node_49;
+    node_11 -> node_49;
+    node_42 -> node_49;
+    node_15 -> node_49;
+    node_41 -> node_49;
+    node_35 -> node_49;
+    node_12 -> node_49;
+    node_37 -> node_49;
+    node_10 -> node_49;
+    node_31 -> node_49;
+    node_44 -> node_49;
+    node_17 -> node_49;
+    node_8 -> node_49;
+    node_14 -> node_49;
+    node_29 -> node_49;
+    node_6 -> node_49;
+    node_27 -> node_49;
+    node_16 -> node_49;
+    node_33 -> node_49;
+    node_20 -> node_49;
+    node_25 -> node_49;
+    node_5 -> node_49;
+    node_21 -> node_49;
+    node_39 -> node_49;
+    node_13 -> node_49;
+    node_2 -> node_49;
+    node_49 -> node_23;
+    subgraph cluster_output {
+        label="Outputs";
+        node_23 [shape=box, label="default payment next month.1"];
+    }
+}
