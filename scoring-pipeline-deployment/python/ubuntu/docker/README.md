@@ -2,17 +2,17 @@ Python Scoring Pipeline Wrapper using Docker
 ============================================
 
 This directory contains sample code that explains the steps needed to deploy a python scoring pipeline
-obtained from H2O Driverless AI in a Ubuntu 18.04 docker container. This directory acts as the build 
-context for the docker build step. 
+obtained from H2O Driverless AI in a Ubuntu 18.04 docker container. This directory acts as the build
+context for the docker build step.
 
 
 Prerequisites
 -------------
 
 The following pre-requisites are needed
-- [Docker](https://www.docker.com/) 
+- [Docker](https://www.docker.com/)
 
-Follow the installation instructions for your platform and get Docker Ce (or EE) installed on the machine. 
+Follow the installation instructions for your platform and get Docker Ce (or EE) installed on the machine.
 
 
 Code Structure
@@ -36,8 +36,8 @@ Instructions
 3. Change to `top-dir`, which contains the files as mentioned in the above section
 4. Copy the scoring pipeline `scorer.zip` in the `payload` directory. You may need to create the `payload` directory.
 5. Copy Driverless AI license `license.sig` in the `payload` directory
-6. Issue the command `docker build -t scoretest .`. This will
-    - Create a Ubuntu 18.04 based docker container 
+6. Issue the command `docker build -f Dockerfile-pip -t scoretest .`. This will
+    - Create a Ubuntu 18.04 based docker container
     - Install required dependencies, miniconda, python etc..
     - Create a conda environment for the scoring pipeline by installing all needed dependencies
     - Run `example.py` from the scoring pipeline
@@ -48,6 +48,8 @@ shows how to use DAI python scoring pipeline as a python module. There are other
 You can run the docker container in interactive model, and can experiment with the HTTP and TCP endpoints.
 
 Execute the command `docker run -it --rm scoretest:latest`. Once connected you will be in the `scoring-pipeline` directory.
+
+Once inside the Docker container you will need to `chmod +X run_example.sh` to make the sample script executable. Then simply run `bash run_example.sh` to run the example scoring routine.
 
 To run `example.py` you can follow the below steps once you are connected using SSH
 
@@ -63,7 +65,7 @@ Similarly, you can run the HTTP and TCP server python files too.
 Disclaimer
 ----------
 
-The scoring pipeline wrapper code shared in this directory is created to provide you 
+The scoring pipeline wrapper code shared in this directory is created to provide you
 a sample starting point and is not intended to be directly deployed to production as is.
 You can use this starting point and build over it to solve your deployment needs ensuring
 that your security etc. requirements are met.
