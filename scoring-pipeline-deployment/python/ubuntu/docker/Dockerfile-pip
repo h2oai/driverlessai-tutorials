@@ -4,13 +4,14 @@ FROM ubuntu:bionic
 # No user is created. Installs as root.
 # Use as example code and modify as needed
 
-# These commands run as root 
+# These commands run as root
 # Install base dependencies
-RUN apt-get update && \ 
+RUN apt-get update && \
     apt install -y \
         build-essential \
-        libmagic-dev \ 
+        libmagic-dev \
         libopenblas-dev \
+        openjdk-8-jre \
         git \
         locales \
 	python3-pip \
@@ -26,13 +27,13 @@ ENV HOME /root
 
 WORKDIR $HOME
 
-COPY payload/scorer.zip ./ 
+COPY payload/scorer.zip ./
 COPY payload/license.sig .driverlessai/
 
-RUN unzip scorer.zip 
+RUN unzip scorer.zip
 
 WORKDIR scoring-pipeline
 
-RUN python3 -m pip install --upgrade --upgrade-strategy only-if-needed pip==9.0.3 && \
+RUN python3 -m pip install --upgrade --upgrade-strategy only-if-needed pip==19.3.1 && \
     python3 -m pip install --upgrade --upgrade-strategy only-if-needed -r requirements.txt
 
