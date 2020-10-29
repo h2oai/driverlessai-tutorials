@@ -15,5 +15,13 @@ While the guides mention a cloud provider (which is where I tried the steps), th
   - nvidia-docker and then configure the GPU cards for use is H2O Driverless AI
 - We explain the process using a VM on Azure, but then setup steps should be valid for baremetal as well as VMs in other clouds.
 
+**[Aws/Rhel7.7.md](Aws/Rhel7.7.md)**
+
+- Guide to setup Driverless AI from scratch on RHEL 7.7.
+- We install the following things in order
+  - Nvidia Drivers
+  - docker-ce
+  - nvidia-docker and then configure the GPU cards for use is H2O Driverless AI
+- We explain the process using a EC2 instance on AWS, but then setup steps should be valid for baremetal as well as VMs in other clouds.
 
 [1]: https://www.h2o.ai/products/h2o-driverless-ai/
