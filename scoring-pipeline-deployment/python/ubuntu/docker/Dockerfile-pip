@@ -14,16 +14,15 @@ RUN apt-get update && \
         openjdk-8-jre \
         git \
         locales \
-	python3-pip \
+        python3-pip python3-virtualenv\
         unzip \
         wget
 
 RUN locale-gen en_US.UTF-8
-ENV LANG en_US.UTF-8
-ENV LANGUAGE en_US:en
-ENV LC_ALL en_US.UTF-8
-ENV HOME /root
-
+ENV LANG="en_US.UTF-8"
+ENV LANGUAGE="en_US:en"
+ENV LC_ALL="en_US.UTF-8"
+ENV HOME="/root"
 
 WORKDIR $HOME
 
@@ -34,6 +33,11 @@ RUN unzip scorer.zip
 
 WORKDIR scoring-pipeline
 
-RUN python3 -m pip install --upgrade --upgrade-strategy only-if-needed pip==19.3.1 && \
-    python3 -m pip install --upgrade --upgrade-strategy only-if-needed -r requirements.txt
 
+RUN python3 -m pip install --upgrade --upgrade-strategy only-if-needed pip==19.3.1 && \
+    python3 -m pip install --upgrade --upgrade-strategy only-if-needed -r requirements.txt -c full_constraints.txt && \
+    python3 -m pip install --upgrade --upgrade-strategy only-if-needed -r http_server_requirements.txt -c full_constraints.txt
+
+EXPOSE 9090
+
+CMD ["python3", "http_server.py", "--port=9090"]
