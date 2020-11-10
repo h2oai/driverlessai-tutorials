@@ -36,30 +36,15 @@ Instructions
 3. Change to `top-dir`, which contains the files as mentioned in the above section
 4. Copy the scoring pipeline `scorer.zip` in the `payload` directory. You may need to create the `payload` directory.
 5. Copy Driverless AI license `license.sig` in the `payload` directory
-6. Issue the command `docker build -f Dockerfile-pip -t scoretest .`. This will
+6. Issue the command `docker build -f Dockerfile-pip -t scorepython .`. This will
     - Create a Ubuntu 18.04 based docker container
-    - Install required dependencies, miniconda, python etc..
-    - Create a conda environment for the scoring pipeline by installing all needed dependencies
-    - Run `example.py` from the scoring pipeline
+    - Install required system dependencies, python3.6, pip etc..
+    - Install all python package dependencies needed for the scoring pipeline to work 
+    - Run `http_server.py` from the scoring pipeline and expose the REST scoring server at port 9090
 
-As part of the build process you will see the scores being produced for the test data in `example.py`. This example
-shows how to use DAI python scoring pipeline as a python module. There are other options like HTTP service and TCP service that can be created too.
+Execute the command `docker run -p 9090:9090 scorepython:latest` and you will notice the python scoring server start and accept connections. 
 
-You can run the docker container in interactive model, and can experiment with the HTTP and TCP endpoints.
-
-Execute the command `docker run -it --rm scoretest:latest`. Once connected you will be in the `scoring-pipeline` directory.
-
-Once inside the Docker container you will need to `chmod +X run_example.sh` to make the sample script executable. Then simply run `bash run_example.sh` to run the example scoring routine.
-
-To run `example.py` you can follow the below steps once you are connected using SSH
-
-```
-conda env list                            # shows conda environments available on the system
-source activate environment_name          # activate environment for required experiment (experiment key is in name)
-python example.py                         # to run example.py manually
-```
-
-Similarly, you can run the HTTP and TCP server python files too.
+In the `scorer.zip` file you put in the `payload` directory there is a sample http client you can use to test this server. Extract the file `run_http_client.sh` and execute it while the docker image is still listening. You will see the predictions being returned.
 
 
 Disclaimer
