@@ -1,8 +1,16 @@
 # Python Client Examples: driverlessai
 
-The intuitive, static Python client for Drivierless AI became beta in March 2020. This package, `driverlessai` will be a replacement for the backend client, `h2oai_client`. This repository contains example usage notebooks to help get you started. 
+The intuitive, static Python client for Drivierless AI.
 
-_If you would like to be a beta tester or have feedback please reachout to `support@h2o.ai`._
+### Install
+
+Install with `pip install driverlessai` or `conda install -c h2oai driverlessai`.
+
+Upgrade with `pip install --upgrade driverlessai` or `conda update -c h2oai driverlessai`.
+
+### Documentation
+
+http://docs.h2o.ai/driverless-ai/pyclient/docs/html/index.html
 
 ## Available Examples 
 
@@ -22,21 +30,4 @@ _If you would like to be a beta tester or have feedback please reachout to `supp
   6. Launching Machine Learning Interpretability
   7. Disconnect
 
-## Beta Note
-
-Thank you for trying the Driverless AI Python Client beta! Since this is a beta, please keep in mind:
-
-- The API is subject to change
-- It's not for production
-- There are missing features
-- It probably has bugs
-
 Please send feedback to help improve the client and documentation to support@h2o.ai.
-
-### Install
-
-Get access to the .whl file by sending a note to `support@h2o.ai` requesting to be a beta tester.
-
-### Documentation
-
-Available with the .zip that can be obtained by contacting `support@h2o.ai` to become a beta tester
