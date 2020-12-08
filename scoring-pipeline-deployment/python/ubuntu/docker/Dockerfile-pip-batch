@@ -1,0 +1,44 @@
+FROM ubuntu:bionic
+
+# Similar to Dockerfile, but uses PIP to install dependencies without creating environment
+# No user is created. Installs as root.
+# Use as example code and modify as needed
+
+# These commands run as root
+# Install base dependencies
+RUN apt-get update && \
+    apt install -y \
+        build-essential \
+        libmagic-dev \
+        libopenblas-dev \
+        openjdk-8-jre \
+        git \
+        locales \
+        python3-pip python3-virtualenv\
+        unzip \
+        wget
+
+RUN locale-gen en_US.UTF-8
+ENV LANG="en_US.UTF-8"
+ENV LANGUAGE="en_US:en"
+ENV LC_ALL="en_US.UTF-8"
+ENV HOME="/root"
+
+WORKDIR $HOME
+
+COPY payload/scorer.zip ./
+COPY payload/license.sig .driverlessai/
+
+RUN unzip scorer.zip
+
+COPY batch_scorer.py scoring-pipeline
+
+WORKDIR scoring-pipeline
+
+RUN python3 -m pip install --upgrade --upgrade-strategy only-if-needed setuptools pip==20.3.1 && \
+    python3 -m pip install --upgrade --upgrade-strategy only-if-needed -r requirements.txt -c full_constraints.txt
+
+RUN import_statement=$(grep -E 'from scoring_h2oai_experiment' example.py) && \
+    sed -i "s/INJECT_EXPERIMENT_IMPORT/${import_statement}/g" batch_scorer.py
+
+CMD ["python3", "batch_scorer.py"]
