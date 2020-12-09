@@ -60,7 +60,7 @@ Docker Container for Batch scoring
     - Run the `batch_scorer.py` in the container such that it scores the file `/data/input.csv` and writes the predictions to `/data/output.csv` 
 
 Execute the command `docker run -v some_dir_with_input_data:/data score_python_batch:latest`. Here `some_dir_with_input_data` is some directory on the machine where you are executing the docker run command. The file you want to score should be present in that directory with the name `input.csv`. The user executing the docker run command should have read and write permissions on the directory `some_dir_with_input_data` to be able to create the prediction output file `output.csv` in that same directory 
-
+7. Once the `output.csv` is generate you can cbind the two files in linux using the command `paste -d ',' input.csv output.csv`
 
 Disclaimer
 ----------
