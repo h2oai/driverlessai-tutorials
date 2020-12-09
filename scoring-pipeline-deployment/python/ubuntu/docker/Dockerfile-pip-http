@@ -47,4 +47,4 @@ RUN python3 -m virtualenv -p python3.6 env && \
 
 EXPOSE 9090
 
-CMD ["python3", "http_server.py", "--port=9090"]
+CMD ["env/bin/python", "http_server.py", "--port=9090"]
