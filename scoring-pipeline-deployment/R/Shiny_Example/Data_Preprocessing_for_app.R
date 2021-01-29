@@ -1,3 +1,6 @@
+#################     
+
+
 library(dplyr)
 library(daimojo)
 options(scipen = 99999)
@@ -6,7 +9,7 @@ options(scipen = 99999)
 # http://docs.h2o.ai/driverless-ai/latest-stable/docs/userguide/scoring-pipeline-cpp.html#downloading-the-scoring-pipeline-runtimes
 
 #path set to driverlessai-tutorials
-setwd("./scoring-pipeline-deployment/R/Shiny_Example/")
+setwd("/Users/felix/Code/h2oai/driverlessai-tutorials/scoring-pipeline-deployment/R/Shiny_Example/")
 dataset <- read.csv("CreditCard-train.csv", header = TRUE, stringsAsFactors = TRUE)
 target <- "default.payment.next.month"
 
@@ -50,6 +53,9 @@ for(i in int_cols ){
   
 }
 
+summary(dataset)
+str(dataset)
+
 dataset$LIMIT_BAL <- as.numeric(dataset$LIMIT_BAL) #present as integer
 dataset$PAY_0 <- as.numeric(dataset$PAY_0) #present as integer
 dataset$PAY_2 <- as.numeric(dataset$PAY_2) #present as integer
@@ -70,10 +76,10 @@ dataset$BILL_AMT4 <- as.numeric(dataset$BILL_AMT4) #present as integer
 dataset$BILL_AMT5 <- as.numeric(dataset$BILL_AMT5) #present as integer
 dataset$BILL_AMT6 <- as.numeric(dataset$BILL_AMT6) #present as integer
 
-int_cols <- class_vec$variables[class_vec$class %in% c("integer", "numeric")]
-numeric_cat_cols <- class_vec$variables[class_vec$class %in% c("numeric_cat")]
-cat_cols <- class_vec$variables[class_vec$class %in% c("str", "factor", "character")]
-bool_cols <- class_vec$variables[class_vec$class %in% c("logical")]
+#int_cols <- class_vec$variables[class_vec$class %in% c("integer", "numeric")]
+#numeric_cat_cols <- class_vec$variables[class_vec$class %in% c("numeric_cat")]
+#cat_cols <- class_vec$variables[class_vec$class %in% c("str", "factor", "character")]
+#bool_cols <- class_vec$variables[class_vec$class %in% c("logical")]
 
 summary(dataset)
 
