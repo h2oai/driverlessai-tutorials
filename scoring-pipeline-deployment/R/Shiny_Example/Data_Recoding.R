@@ -34,4 +34,8 @@ dataset$MARRIAGE[dataset$MARRIAGE == 1] <- "Married"
 dataset$MARRIAGE[dataset$MARRIAGE == 2] <- "Single"
 table(dataset$MARRIAGE)
 
+#### Target
+table(dataset$default.payment.next.month)
+dataset$default.payment.next.month = ifelse(dataset$default.payment.next.month==0, "Non Default", "Default")
+
 write.csv(dataset, "CreditCardRe.csv", row.names = FALSE)
