@@ -20,7 +20,7 @@ library(dai)
 #############################################################################################
 ##########                           DAI Connect                                  ###########
 #############################################################################################
-url = 'http://ec2-3-85-128-223.compute-1.amazonaws.com:12345'
+url = 'http://ec2-54-204-68-13.compute-1.amazonaws.com:12345'
 username = 'h2oai'
 password = 'i-0f244cddd419191cd'
 dai.connect(uri = url, username = username, password = password)
@@ -28,12 +28,14 @@ dai.connect(uri = url, username = username, password = password)
 #############################################################################################
 ##########                    DAI Model Prediction                                ###########
 #############################################################################################
-View(dai.list_models())
-new_data = read.csv("CreditCard-test.csv")
 
-final_model = dai.get_model(key = '6a8a4010-62d4-11eb-8429-0242ac110002')
+View(dai.list_models())
+final_model = dai.get_model(key = '0e856d32-63db-11eb-831f-0242ac110002')
+
+new_data = read.csv("CreditCardRe_Test.csv")
 new_data_dai = as.DAIFrame(new_data)
 preds = predict(final_model, newdata = new_data_dai)
 
 pred_shap_contribs = predict(final_model, newdata = new_data_dai, pred_contribs = TRUE)
 pred_orig_contribs = predict(final_model, newdata = new_data_dai, pred_contribs = TRUE, pred_contribs_original = TRUE)
+

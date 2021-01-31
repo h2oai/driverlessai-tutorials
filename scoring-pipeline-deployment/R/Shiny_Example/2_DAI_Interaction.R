@@ -19,7 +19,7 @@ library(dai)
 #############################################################################################
 ##########                           DAI Connect                                  ###########
 #############################################################################################
-url = 'http://ec2-18-212-191-247.compute-1.amazonaws.com:12345'
+url = 'http://ec2-54-204-68-13.compute-1.amazonaws.com:12345'
 username = 'h2oai'
 password = 'i-0f244cddd419191cd'
 dai.connect(uri = url, username = username, password = password)
@@ -33,9 +33,9 @@ cc_dai <- dai.upload_dataset("CreditCardRe.csv", progress = TRUE)
 
 View(dai.list_datasets())
 
-cc_dai <- dai.get_frame('6e2f6060-62cf-11eb-8429-0242ac110002')
+dai_frame <- dai.get_frame('a4fbeb42-63cc-11eb-831f-0242ac110002')
+dai.rm(dai_frame)
 
-dai.rm(cc_dai)
 View(dai.list_datasets())
 
 cc_df <- as.data.frame(cc_dai)
@@ -61,11 +61,11 @@ dai.parallel_coordinates_plot(
 
 ### Distribution
 dai.dotplot(cc_dai, variable_name = 'PAY_0', mark = "point")
-dai.histogram(cc_dai, variable_name = 'LIMIT_BAL', number_of_bars = 5)
+#dai.histogram(cc_dai, variable_name = 'LIMIT_BAL', number_of_bars = 5)
 
 ## Linear Regression
 dai.loess_regression_plot(cc_dai, x_variable_name = 'BILL_AMT1', y_variable_name = 'BILL_AMT2' )
-dai.linear_regression_plot(cc_dai, x_variable_name = 'PAY_AMT1', y_variable_name = 'PAY_AMT2' )
+#dai.linear_regression_plot(cc_dai, x_variable_name = 'PAY_AMT1', y_variable_name = 'PAY_AMT2' )
 
 #############################################################################################
 ##########                         DAI Split Dataset                              ###########
@@ -84,39 +84,36 @@ dai.split_dataset(
 )
 View(dai.list_datasets())
 
+train_dai_frame = dai.get_frame(key = '1cd2a352-63cf-11eb-831f-0242ac110002')
+test_dai_frame = dai.get_frame(key = '1cd2cf12-63cf-11eb-831f-0242ac110002')
+
+View(train_dai_frame)
+View(train_dai_frame$columns)
+
 #############################################################################################
 ##########                        DAI New Experiment                              ###########
 #############################################################################################
 
-train_dai_frame = dai.get_frame(key = '452a0218-62d1-11eb-8429-0242ac110002')
-test_dai_frame = dai.get_frame(key = '452a3062-62d1-11eb-8429-0242ac110002')
-
-
-
 View(dai.list_models())
-aborted_model = dai.get_model(key = 'ec65f432-62d2-11eb-8429-0242ac110002')
-aborted_model
-dai.rm(aborted_model)
 
 default_model = dai.train(training_frame = train_dai_frame,
                           target_col = 'default.payment.next.month',
                           is_classification = TRUE,
-                          experiment_name = 'R_Triggered_CC_Default')
+                          experiment_name = 'Default',
+                          testing_frame = test_dai_frame)
 
 simple_model = dai.train(training_frame = train_dai_frame,
                          target_col = 'default.payment.next.month',
                          is_classification = TRUE,
-                         is_timeseries = FALSE,
-                         is_image = FALSE,
                          testing_frame = test_dai_frame,
                          scorer = 'F1',
                          accuracy = 1,
                          time = 1,
                          interpretability = 10,
-                         experiment_name = 'R_Triggered_CC_Basic')
+                         experiment_name = 'Basic')
 
 
-expert_model= dai.train(training_frame = train_dai_frame,
+glm_model= dai.train(training_frame = train_dai_frame,
                         target_col = 'default.payment.next.month',
                         is_classification = TRUE,
                         testing_frame = test_dai_frame,
@@ -124,11 +121,11 @@ expert_model= dai.train(training_frame = train_dai_frame,
                         accuracy = 1,
                         time = 1,
                         interpretability = 10,
-                        experiment_name = 'R_Triggered_CC_Config_Override', 
+                        experiment_name = 'Config_Override', 
                         config_overrides = c('make_autoreport = true',
                                              'autodoc_population_stability_index = true',
-                                             'recipe = "auto"',
-                                             'enable_tensorflow = "on"',
+                                             'enable_glm="on"',
+                                             'enable_decision_tree="off"',
                                              'enable_xgboost_gbm = "off"',
                                              'enable_lightgbm = "off"',
                                              'make_python_scoring_pipeline = "off"',
@@ -136,31 +133,30 @@ expert_model= dai.train(training_frame = train_dai_frame,
                                ))
 View(dai.list_models())
 
-suggested_params = dai.suggest_model_params(
-  training_frame = train_dai_frame,
-  target_col = 'default.payment.next.month',
-  is_classification = TRUE,
-  is_timeseries = FALSE,
-  is_image = FALSE,
-  config_overrides = "",
-  cols_to_drop = NULL
-)
-
-View(suggested_params)
-suggested_params_model = do.call(dai.train, suggested_params)
+# suggested_params = dai.suggest_model_params(
+#   training_frame = train_dai_frame,
+#   target_col = 'default.payment.next.month',
+#   is_classification = TRUE,
+#   is_timeseries = FALSE,
+#   is_image = FALSE,
+#   config_overrides = "",
+#   cols_to_drop = NULL
+# )
+# 
+# View(suggested_params)
+# suggested_params_model = do.call(dai.train, suggested_params)
 
 View(dai.list_models())
-fetched_model = dai.get_model(key = '61e18f70-62d6-11eb-8429-0242ac110002')
-dai.set_model_desc(fetched_model, 'R_Triggered_CC_SuggestedParams')
-dai.rm(fetched_model)
+fetched_model = dai.get_model(key = 'c1224714-63d4-11eb-831f-0242ac110002')
+dai.set_model_desc(fetched_model, 'prod_model')
+#dai.rm(fetched_model)
 
 
 #############################################################################################
-##########                        DAI Reuse/Refit a Model                       ###########
+##########                        DAI Reuse/Refit a Model                         ###########
 #############################################################################################
 
 View(dai.list_models())
-fetched_model = dai.get_model(key = '61e18f70-62d6-11eb-8429-0242ac110002')
 
 summary(fetched_model)
 
@@ -168,15 +164,13 @@ another_expert_model= dai.train(training_frame = train_dai_frame,
                         target_col = 'default.payment.next.month',
                         is_classification = TRUE,
                         testing_frame = test_dai_frame,
-                        scorer = 'MCC',
-                        accuracy = 1,
-                        time = 1,
-                        interpretability = 10,
-                        experiment_name = 'R_Triggered_CC_Config_Override_Same_Params', 
+                        scorer = 'AUCPR',
+                        experiment_name = 'NewExpSameParams', 
                         resumed_model = fetched_model,
                         resume_method = 'same')
+### ^^ When trying new experiments with same parameters, config_override changes are NOT used
 
-another_expert_model= dai.train(training_frame = cc_dai,
+refit_expert_model= dai.train(training_frame = cc_dai,
                                 target_col = 'default.payment.next.month',
                                 is_classification = TRUE,
                                 testing_frame = test_dai_frame,
@@ -184,9 +178,76 @@ another_expert_model= dai.train(training_frame = cc_dai,
                                 accuracy = 1,
                                 time = 0,
                                 interpretability = 10,
-                                experiment_name = 'R_Triggered_CC_Config_Override_Same_Params', 
+                                experiment_name = 'RefitFinalModel', 
                                 resumed_model = fetched_model,
                                 resume_method = 'refit')
+
+### ^^ When refitting final model, time setting is forced to 0
+
+
+#############################################################################################
+##########                    Retrieving / Downloading Artefacts                  ###########
+#############################################################################################
+
+View(dai.list_models())
+
+final_model = dai.get_model(key = '0e856d32-63db-11eb-831f-0242ac110002')
+
+#####   Predictions  #####
+dai.autoreport(final_model, path = "../", force = TRUE, progress = TRUE)
+
+#####   Predictions  #####
+dai.download_file(final_model$train_predictions_path, dest_path = "../", force = TRUE,  progress = TRUE)
+dai.download_file(final_model$test_predictions_path, dest_path = "../", force = TRUE,  progress = TRUE)
+
+##### Summary and Log Files #####
+dai.download_file(final_model$summary_path, dest_path = ".", force = TRUE, progress = TRUE)
+dai.download_file(final_model$log_file_path, dest_path = ".", force = TRUE, progress = TRUE)
+
+##### Download MOJO #####
+dai.download_mojo(final_model, path = getwd(), force = TRUE, progress = TRUE)
+
+
+#############################################################################################
+##########         MLI Interpretation - CAUTION - Low Level Code / BUG            ###########
+#############################################################################################
+
+# library(jsonlite)
+# 
+# dai.interpret_model <- function(model, dataset, target_col, progress = TRUE) {
+#   print(model$key)
+#   print(dataset$key)
+#   key <- dai:::.dai_do_rpc("api_run_interpretation", list("interpret_params" = list(
+#     dai_model = list(key = unbox(model$key), display_name = unbox(model$description)),
+#     dataset = list(key = unbox(dataset$key), display_name = unbox(dataset$name)),
+#     target_col = unbox(target_col),
+#     use_raw_features = unbox(TRUE),
+#     prediction_col = unbox(''),
+#     weight_col = unbox(''),
+#     drop_cols = list(),
+#     klime_cluster_col = unbox(''),
+#     nfolds = unbox(0),
+#     sample = unbox(TRUE),
+#     sample_num_rows = unbox(-1),
+#     qbin_cols = list(),
+#     qbin_count = unbox(0),
+#     lime_method = unbox("k-LIME"),
+#     dt_tree_depth = unbox(3),
+#     vars_to_pdp = unbox(10),
+#     config_overrides = NULL,
+#     dia_cols = list()
+#   )))
+#   
+#   print("key is set")
+#   print(key)
+#   
+#   return(dai:::wait_for_job(function() dai:::get_interpretation_job(key), progress = progress)$entity)
+# }
+# 
+# mli <- dai.interpret_model(final_model, train_dai_frame, 'default.payment.next.month')
+
+
+
 
 
 

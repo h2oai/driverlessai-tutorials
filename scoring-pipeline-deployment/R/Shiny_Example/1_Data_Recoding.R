@@ -36,6 +36,6 @@ table(dataset$MARRIAGE)
 
 #### Target
 table(dataset$default.payment.next.month)
-dataset$default.payment.next.month = ifelse(dataset$default.payment.next.month==0, "Non Default", "Default")
+dataset$default.payment.next.month = ifelse(dataset$default.payment.next.month==0, "0_Non-Default", "1_Default")
 
 write.csv(dataset, "CreditCardRe.csv", row.names = FALSE)
