@@ -19,7 +19,7 @@ library(dai)
 #############################################################################################
 ##########                           DAI Connect                                  ###########
 #############################################################################################
-url = 'http://ec2-54-204-68-13.compute-1.amazonaws.com:12345'
+url = 'http://ec2-52-206-210-31.compute-1.amazonaws.com:12345'
 username = 'h2oai'
 password = 'i-0f244cddd419191cd'
 dai.connect(uri = url, username = username, password = password)
@@ -33,13 +33,15 @@ cc_dai <- dai.upload_dataset("CreditCardRe.csv", progress = TRUE)
 
 View(dai.list_datasets())
 
-dai_frame <- dai.get_frame('a4fbeb42-63cc-11eb-831f-0242ac110002')
+dai_frame <- dai.get_frame('ef2d496e-6461-11eb-b42c-0242ac110002')
 dai.rm(dai_frame)
 
 View(dai.list_datasets())
 
 cc_df <- as.data.frame(cc_dai)
 str(cc_df)
+
+
 
 #############################################################################################
 ##########                    DAI Dataset Visuals                                 ###########

@@ -13,7 +13,8 @@ getwd()
 library(daimojo)
 library(data.table)
 ### set DRIVERLESS_AI_LICENSE_KEY
-Sys.setenv("DRIVERLESS_AI_LICENSE_KEY" = "paste your DAI license here")
+#Sys.setenv("DRIVERLESS_AI_LICENSE_KEY"="paste your key here")
+Sys.getenv("DRIVERLESS_AI_LICENSE_KEY")
 model = daimojo::load.mojo("mojo-pipeline/pipeline.mojo")
 daimojo::create.time(model)
 daimojo::feature.names(model)
@@ -26,10 +27,6 @@ new_data <- fread("./mojo-pipeline/example.csv", colClasses=col_class, header=TR
 str(new_data)
 
 daimojo::predict.mojo(m = model, newdata = new_data)
-
-#############################################################################################
-##########                         Data Prep for Shiny App                        ###########
-#############################################################################################
 
 
 

@@ -1,6 +1,3 @@
-##########################################################################
-#####                        SHINY APP                               #####
-##########################################################################
 
 library(shiny)
 library(shinythemes)
@@ -10,10 +7,43 @@ library(DT)
 library(reshape2)
 library(dplyr)
 library(caret)
+library(data.table)
+
+#############################################################################################
+##########                         Data Prep for Shiny App                        ###########
+#############################################################################################
+setwd("/Users/felix/Code/h2oai/driverlessai-tutorials/scoring-pipeline-deployment/R/Shiny_Example")
+train_dataset <- read.csv("CreditCardRe_Train.csv") #train_dataset
+dataset <- train_dataset
+colnames(train_dataset)
+
+int_cols <- c("LIMIT_BAL", "BILL_AMT1", "BILL_AMT2", "BILL_AMT3", "BILL_AMT4", "BILL_AMT5", "BILL_AMT6", "PAY_AMT1", "PAY_AMT2", "PAY_AMT3", "PAY_AMT4", "PAY_AMT5", "PAY_AMT6")
+cat_cols <- c("SEX", "EDUCATION", "MARRIAGE")
+numeric_cat_cols <- c("AGE", "PAY_0", "PAY_2", "PAY_3", "PAY_4", "PAY_5", "PAY_6")
+target <- 'default.payment.next.month'
+predictor_colnames <- colnames(train_dataset)[colnames(train_dataset) != target]
+
+predictions_df <- read.csv("train_preds.csv", header = TRUE)
+colnames(predictions_df)[2] <- "prob_pred"
+nrow(predictions_df)
+nrow(train_dataset)
+
+dataset_w_pred <- cbind(train_dataset, predictions_df)
+colnames(dataset_w_pred)[colnames(dataset_w_pred) == 'default.payment.next.month'] <- "Actual_Target"
+Sys.setenv("DRIVERLESS_AI_LICENSE_KEY" = "paste_your_key_here")
+model = daimojo::load.mojo("mojo-pipeline/pipeline.mojo")
+col_class <- setNames(daimojo::feature.types(model), daimojo::feature.names(model))
+new_data_dt <- fread("./mojo-pipeline/example.csv", colClasses=col_class, header=TRUE, sep=",")
+new_data_dt <- new_data_dt[1, ]
+mojo_predictor_colnames = colnames(new_data_dt)
+
+##########################################################################
+#####                        SHINY APP                               #####
+##########################################################################
 
 ui <- fluidPage(
   
-  navbarPage(title = "DAI Dashboard", theme = shinytheme(theme = "united"), windowTitle = "DAI and Shiny Integrations",
+  navbarPage(title = "DAI Dashboard", theme = shinytheme(theme = "cosmo"), windowTitle = "DAI and Shiny Integrations",
              
              tabPanel("Model Experiment Diagnostics",
                       
@@ -363,7 +393,7 @@ server <- function(input, output, session){
   
   fun_confusion_matrix_train_diagnostics <- reactive({
     dataset_w_pred$pred_class <- 0
-    dataset_w_pred$pred_class[dataset_w_pred$prob_pred > input$ip_threshold_cutoff] <- 1
+    dataset_w_pred$pred_class <- ifelse(dataset_w_pred$prob_pred > input$ip_threshold_cutoff, '1_Default', '0_Non-Default')
     
     cm <- confusionMatrix(data = as.factor(dataset_w_pred$pred_class), reference = as.factor(dataset_w_pred$Actual_Target))
     cm_df <- as.data.frame(cm$table)
@@ -527,7 +557,7 @@ server <- function(input, output, session){
   fun_calculate_business_savings <- eventReactive(input$bt_business_savings, {
     df <- stored_test_df$test_data_w_intervention
     print("came inside fun_business_recovery")
-    prediction_df <- daimojo::predict.mojo(m, df)
+    prediction_df <- daimojo::predict.mojo(model, df)
     colnames(prediction_df) <- c("pred_prob_0", "pred_prob_1")
     df <- cbind(df, prediction_df)
     
@@ -644,7 +674,7 @@ server <- function(input, output, session){
     
     print(single_row_df)
     print(str(single_row_df))
-    single_pred_df <- daimojo::predict.mojo(m, single_row_df)
+    single_pred_df <- daimojo::predict.mojo(model, single_row_df)
     print(single_pred_df[1,2])
     return(single_pred_df[1,2]) #Prediction of positive class - 1 row only available
     
@@ -735,7 +765,7 @@ server <- function(input, output, session){
   
 }
 
-shinyApp(ui = ui, server = server, options = (launch.browser  = TRUE))
+shinyApp(ui = ui, server = server)
 
 
 

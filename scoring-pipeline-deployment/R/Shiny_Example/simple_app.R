@@ -3,6 +3,7 @@ library(shiny)
 library(shinythemes)
 library(dplyr)
 library(ggplot2)
+library(data.table)
 
 #############################################################################################
 ##########                         Data Prep for Shiny App                        ###########
@@ -24,12 +25,16 @@ nrow(train_dataset)
 
 dataset_w_pred <- cbind(train_dataset, predictions_df)
 colnames(dataset_w_pred)[colnames(dataset_w_pred) == 'default.payment.next.month'] <- "Actual_Target"
-Sys.setenv("DRIVERLESS_AI_LICENSE_KEY" = "paste your license here")
+Sys.setenv("DRIVERLESS_AI_LICENSE_KEY" = "paste_your_key_here")
 model = daimojo::load.mojo("mojo-pipeline/pipeline.mojo")
-daimojo::feature.names(model)
-daimojo::feature.types(model)
+col_class <- setNames(daimojo::feature.types(model), daimojo::feature.names(model))
+new_data_dt <- fread("./mojo-pipeline/example.csv", colClasses=col_class, header=TRUE, sep=",")
+new_data_dt <- new_data_dt[1, ]
+mojo_predictor_colnames = colnames(new_data_dt)
 
-
+#############################################################################################
+##########                                  App                                   ###########
+#############################################################################################
 
 ui <- fluidPage(
   
@@ -165,19 +170,19 @@ observeEvent(input$bt_SinglePredict, {
 })
 
 fun_single_pred_from_mojo <- eventReactive(input$bt_SinglePredict, {
-  # sample row
-  print(str(train_dataset))
-  single_row_df <- train_dataset[1, ]
-  for(i in colnames(single_row_df)){
-    if(i %in% numeric_cat_cols | i %in% int_cols)
-      single_row_df[, i] <- as.numeric(input[[paste0("ip_",i)]])
-    else
-      single_row_df[, i] <- as.character(input[[paste0("ip_",i)]])
+  for(i in mojo_predictor_colnames){
+    if(i %in% numeric_cat_cols | i %in% int_cols){
+      # print(i)
+      # single_row_df[, i] <- as.numeric(input[[paste0("ip_",i)]])
+      new_data_dt[1, i] <- as.numeric(input[[paste0("ip_",i)]])
+    }else
+      # single_row_df[, i] <- as.character(input[[paste0("ip_",i)]])
+      new_data_dt[1, i]<- as.character(input[[paste0("ip_",i)]])
   }
-
-  print(single_row_df)
-  print(str(single_row_df))
-  single_pred_df <- daimojo::predict.mojo(model, single_row_df)
+  
+  print("new row predicted...")
+  print(new_data_dt)
+  single_pred_df <- daimojo::predict.mojo(model, new_data_dt)
   print(single_pred_df[1,2])
   return(single_pred_df[1,2]) #Prediction of positive class - 1 row only available
 
