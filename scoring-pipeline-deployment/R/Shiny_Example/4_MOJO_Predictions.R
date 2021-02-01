@@ -13,7 +13,7 @@ getwd()
 library(daimojo)
 library(data.table)
 ### set DRIVERLESS_AI_LICENSE_KEY
-Sys.setenv("DRIVERLESS_AI_LICENSE_KEY" = "paste your license here")
+Sys.setenv("DRIVERLESS_AI_LICENSE_KEY" = "paste your DAI license here")
 model = daimojo::load.mojo("mojo-pipeline/pipeline.mojo")
 daimojo::create.time(model)
 daimojo::feature.names(model)
